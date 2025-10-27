@@ -14,6 +14,7 @@ const pedidosRoutes = require('./routes/pedidos');
 const catalogoRoutes = require('./routes/catalogo');
 const recomendacionesRoutes = require('./routes/recomendaciones');
 const notificacionesRoutes = require('./routes/notificaciones');
+const analisisEspacioRoutes = require('./routes/analisisEspacio');
 
 // IMPORTAR MIDDLEWARE - Middleware personalizado para manejo de errores y logging
 const { errorHandler } = require('./middleware/errorHandler');
@@ -72,7 +73,8 @@ app.get('/', (req, res) => {
       pedidos: '/api/pedidos/*',
       catalogo: '/api/catalogo',
       recomendaciones: '/api/recomendaciones/*',
-      notificaciones: '/api/notificaciones/*'
+      notificaciones: '/api/notificaciones/*',
+      analisisEspacio: '/api/analisis-espacio/*'
     }
   });
 });
@@ -84,6 +86,7 @@ app.use('/api/pedidos', pedidosRoutes); // Rutas de gestión de pedidos
 app.use('/api/catalogo', catalogoRoutes); // Rutas del catálogo de productos
 app.use('/api/recomendaciones', recomendacionesRoutes); // Rutas del sistema de IA
 app.use('/api/notificaciones', notificacionesRoutes); // Rutas de notificaciones
+app.use('/api/analisis-espacio', analisisEspacioRoutes); // Rutas de análisis de espacio con IA
 
 // MIDDLEWARE PARA RUTAS NO ENCONTRADAS - Manejo de 404
 app.use('*', (req, res) => {

@@ -1,8 +1,8 @@
-// IMPORTS - Importación de dependencias para JWT y base de datos
+// IMPORTS - Importación de dependencias para JWT y Xano
 const jwt = require('jsonwebtoken');
-const { query } = require('../config/database');
+const xanoService = require('../services/xanoService');
 
-// MIDDLEWARE PRINCIPAL DE AUTENTICACIÓN - Verificar token JWT en peticiones protegidas
+// MIDDLEWARE PRINCIPAL DE AUTENTICACIÓN - Verificar token con Xano
 const verificarToken = async (req, res, next) => {
   try {
     // EXTRAER HEADER DE AUTORIZACIÓN
@@ -25,57 +25,42 @@ const verificarToken = async (req, res, next) => {
       });
     }
 
-    // VERIFICAR Y DECODIFICAR TOKEN JWT
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // VERIFICAR EXISTENCIA Y ESTADO DEL USUARIO en la base de datos
-    const result = await query(
-      'SELECT id, nombre, correo, rol, activo FROM usuarios WHERE id = $1',
-      [decoded.userId]
-    );
+    // VERIFICAR TOKEN CON XANO
+    try {
+      const userInfo = await xanoService.me(token);
+      
+      // AGREGAR INFORMACIÓN DEL USUARIO al objeto request para uso posterior
+      req.usuario = {
+        id: userInfo.id,
+        nombre: userInfo.nombre || userInfo.name || 'Usuario',
+        correo: userInfo.email || userInfo.correo,
+        rol: userInfo.rol || userInfo.role || 'cliente'
+      };
 
-    if (result.rows.length === 0) {
-      return res.status(401).json({
-        error: 'Usuario no encontrado',
-        message: 'El usuario asociado al token no existe'
-      });
+      next(); // Continuar con el siguiente middleware
+    } catch (xanoError) {
+      // Si falla la verificación con Xano, intentar con JWT local como fallback
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        
+        // Crear usuario básico desde el token JWT
+        req.usuario = {
+          id: decoded.userId,
+          nombre: decoded.nombre || 'Usuario',
+          correo: decoded.email || decoded.correo,
+          rol: decoded.rol || 'cliente'
+        };
+
+        next();
+      } catch (jwtError) {
+        return res.status(401).json({
+          error: 'Token inválido',
+          message: 'El token proporcionado no es válido'
+        });
+      }
     }
 
-    const usuario = result.rows[0];
-
-    // VERIFICAR QUE EL USUARIO ESTÉ ACTIVO
-    if (!usuario.activo) {
-      return res.status(401).json({
-        error: 'Usuario inactivo',
-        message: 'Tu cuenta ha sido desactivada'
-      });
-    }
-
-    // AGREGAR INFORMACIÓN DEL USUARIO al objeto request para uso posterior
-    req.usuario = {
-      id: usuario.id,
-      nombre: usuario.nombre,
-      correo: usuario.correo,
-      rol: usuario.rol
-    };
-
-    next(); // Continuar con el siguiente middleware
   } catch (error) {
-    // MANEJO DE ERRORES ESPECÍFICOS DE JWT
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({
-        error: 'Token inválido',
-        message: 'El token proporcionado no es válido'
-      });
-    }
-    
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        error: 'Token expirado',
-        message: 'El token ha expirado, inicia sesión nuevamente'
-      });
-    }
-
     // ERROR INTERNO DEL SERVIDOR
     console.error('Error en verificación de token:', error);
     res.status(500).json({
@@ -207,24 +192,31 @@ const tokenOpcional = async (req, res, next) => {
       return next(); // Continuar sin usuario autenticado
     }
 
-    // INTENTAR VERIFICAR TOKEN sin fallar si es inválido
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // VERIFICAR USUARIO si el token es válido
-    const result = await query(
-      'SELECT id, nombre, correo, rol, activo FROM usuarios WHERE id = $1 AND activo = true',
-      [decoded.userId]
-    );
-
-    if (result.rows.length > 0) {
-      const usuario = result.rows[0];
+    // INTENTAR VERIFICAR TOKEN CON XANO sin fallar si es inválido
+    try {
+      const userInfo = await xanoService.me(token);
+      
       // AGREGAR USUARIO AL REQUEST si está autenticado
       req.usuario = {
-        id: usuario.id,
-        nombre: usuario.nombre,
-        correo: usuario.correo,
-        rol: usuario.rol
+        id: userInfo.id,
+        nombre: userInfo.nombre || userInfo.name || 'Usuario',
+        correo: userInfo.email || userInfo.correo,
+        rol: userInfo.rol || userInfo.role || 'cliente'
       };
+    } catch (xanoError) {
+      // Si falla Xano, intentar con JWT local como fallback
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        
+        req.usuario = {
+          id: decoded.userId,
+          nombre: decoded.nombre || 'Usuario',
+          correo: decoded.email || decoded.correo,
+          rol: decoded.rol || 'cliente'
+        };
+      } catch (jwtError) {
+        // Continuar sin usuario si ambos fallan
+      }
     }
 
     next(); // Continuar con o sin usuario

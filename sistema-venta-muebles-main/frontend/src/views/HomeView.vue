@@ -134,10 +134,13 @@
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
           <router-link to="/recomendaciones" class="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-            Obtener Recomendación Gratuita
+            Obtener Recomendación IA
+          </router-link>
+          <router-link to="/analisis-espacio" class="bg-purple-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-purple-700 transition-colors">
+            Análisis de espacio con IA
           </router-link>
           <router-link to="/catalogo" class="bg-transparent text-white px-8 py-4 rounded-lg font-semibold border-2 border-white hover:bg-white hover:text-blue-600 transition-colors">
-            Explorar Catálogo
+            Ver Catálogo
           </router-link>
         </div>
       </div>

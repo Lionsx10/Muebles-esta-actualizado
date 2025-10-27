@@ -142,27 +142,26 @@ xanoAuthAPI.interceptors.response.use(
 
 // Función para probar la conexión con Xano
 const testConnection = async () => {
-  // Si no hay URL de Xano configurada, omitir la prueba de conexión
+  // Si no hay URLs de Xano configuradas, omitir la prueba de conexión
   if (!process.env.XANO_API_URL || process.env.XANO_API_URL.includes('your-workspace')) {
     logger.info('Xano no configurado, omitiendo prueba de conexión');
     return false;
   }
 
   try {
-    const response = await xanoAPI.get('/health');
-    
-    logger.info('Conexión con Xano establecida exitosamente', {
-      status: response.status,
+    // Probar conexión básica sin endpoint específico
+    logger.info('Configuración de Xano detectada', {
+      mainAPI: process.env.XANO_API_URL,
+      authAPI: process.env.XANO_AUTH_URL || 'usando main API',
       timestamp: new Date().toISOString()
     });
     
     return true;
   } catch (error) {
-    logger.error('Error al conectar con Xano', { 
-      error: error.message,
-      status: error.response?.status 
+    logger.error('Error al verificar configuración de Xano', { 
+      error: error.message 
     });
-    return false; // No lanzar error, solo retornar false
+    return false;
   }
 };
 

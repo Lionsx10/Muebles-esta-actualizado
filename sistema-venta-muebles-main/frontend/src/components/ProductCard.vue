@@ -205,7 +205,7 @@ const viewProduct = () => {
 const toggleFavorite = async () => {
   if (!authStore.isAuthenticated) {
     toast.warning('Debes iniciar sesión para agregar favoritos')
-    router.push('/auth/login')
+    router.push('/login')
     return
   }
 
@@ -232,7 +232,7 @@ const toggleFavorite = async () => {
 const addToCart = async () => {
   if (!authStore.isAuthenticated) {
     toast.warning('Debes iniciar sesión para agregar productos al carrito')
-    router.push('/auth/login')
+    router.push('/login')
     return
   }
 

@@ -16,6 +16,12 @@ import Orders from '@/views/PedidosView.vue'
 // Vistas de recomendaciones
 import Recommendations from '@/views/RecomendacionesView.vue'
 
+// Vistas de análisis de espacio con IA
+import AnalisisEspacio from '@/views/AnalisisEspacioView.vue'
+
+// Vistas de diagnóstico de IA
+import DiagnosticoIA from '@/views/DiagnosticoIAView.vue'
+
 // Vistas del perfil
 import Profile from '@/views/PerfilView.vue'
 
@@ -84,6 +90,28 @@ const routes = [
     component: Recommendations,
     meta: { 
       title: 'Recomendaciones IA',
+      requiresAuth: true // Requiere autenticación
+    }
+  },
+
+  // RUTAS DE ANÁLISIS DE ESPACIO - Sistema de IA para análisis de espacios
+  {
+    path: '/analisis-espacio',
+    name: 'analisis-espacio',
+    component: AnalisisEspacio,
+    meta: { 
+      title: 'Análisis de espacio con IA',
+      requiresAuth: true // Requiere autenticación
+    }
+  },
+
+  // RUTAS DE DIAGNÓSTICO DE IA - Herramientas de diagnóstico para IA
+  {
+    path: '/diagnostico-ia',
+    name: 'diagnostico-ia',
+    component: DiagnosticoIA,
+    meta: { 
+      title: 'Diagnóstico de IA',
       requiresAuth: true // Requiere autenticación
     }
   },

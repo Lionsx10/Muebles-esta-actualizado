@@ -23,7 +23,7 @@ export default defineConfig({
     proxy: {
       // Proxy para redirigir llamadas API al backend
       '/api': {
-        target: 'http://localhost:3000',  // URL del servidor backend
+        target: 'http://localhost:3001',  // URL del servidor backend
         changeOrigin: true,               // Cambia el origen de la petición
         secure: false                     // Permite conexiones no seguras (desarrollo)
       }

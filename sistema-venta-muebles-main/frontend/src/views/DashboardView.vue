@@ -336,7 +336,7 @@ const loadDashboardData = async () => {
         nombre: 'Sofá Moderno 3 Plazas',
         categoria: 'Muebles de Sala',
         precio_base: 899000,
-        imagen_url: '/placeholder-furniture.jpg'
+        imagen_url: '/sofa-moderno-3-plazas.svg'
       },
       {
         id: 2,

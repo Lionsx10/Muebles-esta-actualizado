@@ -4,6 +4,7 @@ import Toast from 'vue-toastification'
 
 import App from './App.vue'
 import router from './router'
+import { useAuthStore } from './stores/auth'
 
 // Estilos
 import './assets/css/main.css'
@@ -16,6 +17,10 @@ app.use(createPinia())
 
 // Configuración del router
 app.use(router)
+
+// Inicializar el store de autenticación
+const authStore = useAuthStore()
+authStore.initialize()
 
 // Configuración de vue-toastification
 app.use(Toast, {

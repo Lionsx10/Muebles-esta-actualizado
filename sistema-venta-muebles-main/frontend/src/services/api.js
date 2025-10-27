@@ -6,7 +6,7 @@ import { useToast } from 'vue-toastification'
 // Crea una instancia personalizada de Axios con configuración predeterminada
 const api = axios.create({
   // URL base obtenida de variables de entorno o valor por defecto
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api',
   // Tiempo límite para las peticiones (30 segundos)
   timeout: 30000,
   // Headers por defecto para todas las peticiones

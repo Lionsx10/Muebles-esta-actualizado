@@ -41,6 +41,16 @@
             Recomendaciones IA
           </router-link>
           
+          <!-- Link a análisis de espacio con IA - Solo para usuarios autenticados -->
+          <router-link
+            v-if="authStore.isAuthenticated"
+            to="/analisis-espacio"
+            class="nav-link"
+            :class="{ 'nav-link-active': $route.path.startsWith('/analisis-espacio') }"
+          >
+            Análisis de espacio
+          </router-link>
+          
           <!-- Link a pedidos - Solo para usuarios autenticados -->
           <router-link
             v-if="authStore.isAuthenticated"
@@ -261,6 +271,15 @@
               @click="showMobileMenu = false"
             >
               Recomendaciones IA
+            </router-link>
+            
+            <router-link
+              v-if="authStore.isAuthenticated"
+              to="/analisis-espacio"
+              class="mobile-nav-link"
+              @click="showMobileMenu = false"
+            >
+              Análisis de espacio
             </router-link>
             
             <router-link
