@@ -5,7 +5,7 @@
     <NavBar v-if="!isAuthPage" />
     
     <!-- Contenido principal - Agrega padding-top cuando hay navbar -->
-    <main :class="{ 'pt-16': !isAuthPage }">
+    <main :class="{ 'pt-8': !isAuthPage }">
       <!-- Router view donde se renderizan las diferentes páginas -->
       <router-view />
     </main>

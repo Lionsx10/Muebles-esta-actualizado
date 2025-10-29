@@ -19,6 +19,16 @@
 
         <!-- ===== NAVEGACIÓN PRINCIPAL (DESKTOP) ===== -->
         <div class="hidden md:flex items-center space-x-8">
+          <!-- Link a inicio/dashboard - Solo para usuarios autenticados -->
+          <router-link
+            v-if="authStore.isAuthenticated"
+            to="/dashboard"
+            class="nav-link"
+            :class="{ 'nav-link-active': $route.path.startsWith('/dashboard') }"
+          >
+            Inicio
+          </router-link>
+          
           <!-- Link a recomendaciones IA - Solo para usuarios autenticados -->
           <router-link
             v-if="authStore.isAuthenticated"
@@ -129,17 +139,6 @@
                 v-if="showUserMenu"
                 class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200"
               >
-                <router-link
-                  to="/dashboard"
-                  class="dropdown-item"
-                  @click="showUserMenu = false"
-                >
-                  <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-                  </svg>
-                  Dashboard
-                </router-link>
-                
                 <router-link
                   to="/perfil"
                   class="dropdown-item"
@@ -458,7 +457,7 @@ const loadNotifications = async () => {
     {
       id: 2,
       titulo: 'Nuevos productos disponibles',
-      mensaje: 'Hemos agregado nuevos muebles de oficina a nuestro catálogo.',
+      mensaje: 'Hemos agregado nuevos muebles de baño, cocina y closets a nuestro catálogo.',
       leida: true,
       created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() // Hace 1 día
     }

@@ -1,15 +1,28 @@
 <template>
-  <div class="container-custom section-padding">
-    <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900">Catálogo de Muebles</h1>
-      <p class="mt-2 text-gray-600">
-        Descubre nuestra amplia selección de muebles de alta calidad
-      </p>
+  <div class="container-custom py-3">
+    <!-- Header con botón de regreso -->
+    <div class="mb-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Catálogo de Muebles</h1>
+          <p class="mt-2 text-gray-600">
+            Descubre nuestra amplia selección de muebles de alta calidad
+          </p>
+        </div>
+        <router-link
+          to="/dashboard"
+          class="btn-secondary flex items-center space-x-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span>Regresar al Inicio</span>
+        </router-link>
+      </div>
     </div>
 
     <!-- Filtros y búsqueda -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Búsqueda -->
         <div class="lg:col-span-2">
@@ -232,6 +245,7 @@
           </h3>
           <p class="mt-1 text-sm text-gray-500">{{ product.categoria }}</p>
           <p class="mt-2 text-sm text-gray-600 line-clamp-2">{{ product.descripcion }}</p>
+          <p class="mt-2 text-sm text-blue-600 font-medium">Medidas: {{ product.medidas }}</p>
           
           <div class="mt-4 flex items-center justify-between">
             <div>
@@ -278,6 +292,7 @@
                 </h3>
                 <p class="text-sm text-gray-500">{{ product.categoria }}</p>
                 <p class="mt-2 text-sm text-gray-600">{{ product.descripcion }}</p>
+                <p class="mt-2 text-sm text-blue-600 font-medium">Medidas: {{ product.medidas }}</p>
                 
                 <div class="mt-2 flex items-center space-x-4">
                   <span v-if="product.material" class="text-xs text-gray-500">
@@ -468,31 +483,182 @@ const visiblePages = computed(() => {
   return pages
 })
 
+// Productos de ejemplo con medidas y precios reales
+const sampleProducts = [
+  {
+    id: 1,
+    nombre: "Mueble de Baño Moderno",
+    categoria: "Muebles de Baño",
+    descripcion: "Mueble de baño con lavamanos integrado, espejo y almacenamiento",
+    precio_base: 450000,
+    material: "MDF Melamínico",
+    medidas: "80cm x 45cm x 85cm",
+    disponible: true,
+    imagen_url: "/placeholder-furniture.jpg",
+    is_favorite: false
+  },
+  {
+    id: 2,
+    nombre: "Cocina Integral Premium",
+    categoria: "Muebles de Cocina",
+    descripcion: "Cocina integral con mesón en granito y acabados de primera calidad",
+    precio_base: 2500000,
+    material: "MDF con Laminado",
+    medidas: "300cm x 60cm x 240cm",
+    disponible: true,
+    imagen_url: "/placeholder-furniture.jpg",
+    is_favorite: false
+  },
+  {
+    id: 3,
+    nombre: "Closet Walk-in",
+    categoria: "Closets",
+    descripcion: "Closet vestidor con múltiples compartimentos y barras colgadoras",
+    precio_base: 1800000,
+    material: "MDF Melamínico",
+    medidas: "250cm x 200cm x 240cm",
+    disponible: true,
+    imagen_url: "/placeholder-furniture.jpg",
+    is_favorite: false
+  },
+  {
+    id: 4,
+    nombre: "Closet Empotrado",
+    categoria: "Closets",
+    descripcion: "Closet empotrado con puertas corredizas y organización interna",
+    precio_base: 1200000,
+    material: "MDF con Formica",
+    medidas: "180cm x 60cm x 240cm",
+    disponible: true,
+    imagen_url: "/placeholder-furniture.jpg",
+    is_favorite: false
+  },
+  {
+    id: 5,
+    nombre: "Mueble Bajo Mesón Cocina",
+    categoria: "Muebles de Cocina",
+    descripcion: "Mueble bajo con cajones y puertas, ideal para cocinas pequeñas",
+    precio_base: 380000,
+    material: "MDF Melamínico",
+    medidas: "120cm x 60cm x 85cm",
+    disponible: true,
+    imagen_url: "/placeholder-furniture.jpg",
+    is_favorite: false
+  },
+  {
+    id: 6,
+    nombre: "Espejo con Botiquín",
+    categoria: "Muebles de Baño",
+    descripcion: "Espejo con botiquín integrado y iluminación LED",
+    precio_base: 180000,
+    material: "Vidrio y MDF",
+    medidas: "60cm x 15cm x 80cm",
+    disponible: true,
+    imagen_url: "/placeholder-furniture.jpg",
+    is_favorite: false
+  },
+  {
+    id: 7,
+    nombre: "Mueble Alto Cocina",
+    categoria: "Muebles de Cocina",
+    descripcion: "Mueble alto con puertas de vidrio y estantes ajustables",
+    precio_base: 320000,
+    material: "MDF con Laminado",
+    medidas: "80cm x 35cm x 70cm",
+    disponible: true,
+    imagen_url: "/placeholder-furniture.jpg",
+    is_favorite: false
+  },
+  {
+    id: 8,
+    nombre: "Tocador con Espejo",
+    categoria: "Closets",
+    descripcion: "Tocador con espejo iluminado y cajones organizadores",
+    precio_base: 650000,
+    material: "MDF Melamínico",
+    medidas: "100cm x 45cm x 160cm",
+    disponible: true,
+    imagen_url: "/placeholder-furniture.jpg",
+    is_favorite: false
+  }
+]
+
 // Cargar productos
 const loadProducts = async () => {
   try {
     isLoading.value = true
     
-    const params = {
-      page: currentPage.value,
-      per_page: perPage.value,
-      ...filters
+    // Simular carga de datos
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    // Filtrar productos según los filtros aplicados
+    let filteredProducts = [...sampleProducts]
+    
+    // Filtro por búsqueda
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase()
+      filteredProducts = filteredProducts.filter(product => 
+        product.nombre.toLowerCase().includes(searchTerm) ||
+        product.descripcion.toLowerCase().includes(searchTerm) ||
+        product.categoria.toLowerCase().includes(searchTerm)
+      )
     }
     
-    // Limpiar parámetros vacíos
-    Object.keys(params).forEach(key => {
-      if (params[key] === '' || params[key] === null || params[key] === undefined) {
-        delete params[key]
-      }
-    })
+    // Filtro por categoría
+    if (filters.categoria) {
+      filteredProducts = filteredProducts.filter(product => 
+        product.categoria === filters.categoria
+      )
+    }
     
-    const response = await api.get('/catalogo', { params })
+    // Filtro por material
+    if (filters.material) {
+      filteredProducts = filteredProducts.filter(product => 
+        product.material === filters.material
+      )
+    }
     
-    products.value = response.data.productos || []
-    currentPage.value = response.data.pagination.page
-    totalPages.value = response.data.pagination.pages
-    totalProducts.value = response.data.pagination.total
-    perPage.value = response.data.pagination.limit
+    // Filtro por precio
+    if (filters.precioMin) {
+      filteredProducts = filteredProducts.filter(product => 
+        product.precio_base >= filters.precioMin
+      )
+    }
+    
+    if (filters.precioMax) {
+      filteredProducts = filteredProducts.filter(product => 
+        product.precio_base <= filters.precioMax
+      )
+    }
+    
+    // Filtro por disponibilidad
+    if (filters.disponible) {
+      filteredProducts = filteredProducts.filter(product => product.disponible)
+    }
+    
+    // Ordenar productos
+    switch (filters.sortBy) {
+      case 'nombre_asc':
+        filteredProducts.sort((a, b) => a.nombre.localeCompare(b.nombre))
+        break
+      case 'nombre_desc':
+        filteredProducts.sort((a, b) => b.nombre.localeCompare(a.nombre))
+        break
+      case 'precio_asc':
+        filteredProducts.sort((a, b) => a.precio_base - b.precio_base)
+        break
+      case 'precio_desc':
+        filteredProducts.sort((a, b) => b.precio_base - a.precio_base)
+        break
+    }
+    
+    // Paginación
+    totalProducts.value = filteredProducts.length
+    totalPages.value = Math.ceil(filteredProducts.length / perPage.value)
+    
+    const startIndex = (currentPage.value - 1) * perPage.value
+    const endIndex = startIndex + perPage.value
+    products.value = filteredProducts.slice(startIndex, endIndex)
     
   } catch (error) {
     console.error('Error cargando productos:', error)
@@ -505,9 +671,13 @@ const loadProducts = async () => {
 // Cargar filtros disponibles
 const loadFilters = async () => {
   try {
-    const response = await api.get('/catalogo/filtros/opciones')
-    categorias.value = response.data.filtros?.categorias || []
-    materiales.value = response.data.filtros?.materiales || []
+    // Extraer categorías y materiales únicos de los productos de ejemplo
+    const uniqueCategories = [...new Set(sampleProducts.map(product => product.categoria))]
+    const uniqueMaterials = [...new Set(sampleProducts.map(product => product.material))]
+    
+    categorias.value = uniqueCategories
+    materiales.value = uniqueMaterials
+    
   } catch (error) {
     console.error('Error cargando filtros:', error)
   }

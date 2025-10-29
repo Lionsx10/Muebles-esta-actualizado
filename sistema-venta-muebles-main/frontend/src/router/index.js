@@ -155,7 +155,7 @@ const routes = [
     name: 'dashboard',
     component: AdminDashboard,
     meta: { 
-      title: 'Dashboard',
+      title: 'Mi Área Personal',
       requiresAuth: true // Requiere autenticación
     }
   },

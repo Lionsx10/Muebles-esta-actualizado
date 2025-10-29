@@ -1,27 +1,5 @@
 <template>
   <div class="home-page">
-    <!-- API Status Indicator -->
-    <div class="fixed top-4 right-4 z-50">
-      <div v-if="apiStatus.testing" class="bg-yellow-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center">
-        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        Probando conexión...
-      </div>
-      <div v-else-if="apiStatus.connected" class="bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center">
-        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-        </svg>
-        Conectado a Xano
-      </div>
-      <div v-else-if="apiStatus.error" class="bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center cursor-pointer" @click="testXanoConnection">
-        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        </svg>
-        Error de conexión (click para reintentar)
-      </div>
-    </div>
 
     <!-- Hero Section -->
     <section class="hero-section bg-blue-600 text-white py-20">
@@ -96,34 +74,7 @@
       </div>
     </section>
 
-    <!-- Connection Status (Development) -->
-    <section class="py-4 bg-gray-100 border-t">
-      <div class="container mx-auto px-4">
-        <div class="flex items-center justify-between text-sm">
-          <div class="flex items-center gap-2">
-            <div class="flex items-center gap-1">
-              <div :class="[
-                'w-2 h-2 rounded-full',
-                apiStatus.connected ? 'bg-green-500' : 'bg-red-500'
-              ]"></div>
-              <span class="text-gray-600">
-                Estado API: {{ apiStatus.connected ? 'Conectado' : 'Desconectado' }}
-              </span>
-            </div>
-            <button 
-              @click="testXanoConnection"
-              :disabled="apiStatus.testing"
-              class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-            >
-              {{ apiStatus.testing ? 'Probando...' : 'Probar Conexión' }}
-            </button>
-          </div>
-          <div class="text-gray-500 text-xs">
-            Modo desarrollo
-          </div>
-        </div>
-      </div>
-    </section>
+
 
     <!-- CTA Section -->
     <section class="py-20 bg-blue-600 text-white">
