@@ -7,7 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-// const { Client, handle_file } = require('@gradio/client'); // Comentado temporalmente
+const { Client, handle_file } = require('@gradio/client');
 const { verificarToken } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { ValidationError, NotFoundError } = require('../middleware/errorHandler');
@@ -207,179 +207,163 @@ function generateLocalFallback(params) {
  */
 async function callGradioAPI(params) {
   try {
-    logger.info('Conectando con Gradio API...', {
-      model_type: params.model_type,
-      max_dimension: params.max_dimension,
-      room_image_url: params.room_image_url ? 'presente' : 'ausente',
-      furniture_image_blob: params.furniture_image_blob ? 'presente' : 'ausente'
+    logger.info('Conectando con Gradio API FurnitureDemo...', {
+      hasRoomBuffer: !!params.room_buffer,
+      hasFurnitureBuffer: !!params.furniture_buffer,
+      hasMaskBuffer: !!params.mask_buffer
     });
 
     // Conectar con el cliente de Gradio
     const client = await Client.connect("MostLikelyAI/FurnitureDemo");
     
-    logger.info('Conexión establecida, verificando estado del espacio...');
-    
-    // Verificar que el espacio esté disponible
-    try {
-      const spaceInfo = await client.view_api();
-      logger.info('Información del espacio Gradio obtenida', {
-        endpoints: spaceInfo ? Object.keys(spaceInfo) : 'No disponible'
-      });
-    } catch (spaceError) {
-      logger.warn('No se pudo obtener información del espacio', {
-        error: spaceError.message
-      });
-    }
-    
-    logger.info('Preparando parámetros...');
+    logger.info('Conexión establecida con FurnitureDemo');
 
-    // Preparar el archivo de imagen de fondo
-    let backgroundFile;
-    try {
-      backgroundFile = handle_file(params.room_image_url);
-      logger.info('Archivo de fondo preparado correctamente');
-    } catch (fileError) {
-      logger.error('Error al preparar archivo de fondo', {
-        error: fileError.message,
-        url: params.room_image_url
-      });
-      throw new Error(`Error al procesar imagen de fondo: ${fileError.message}`);
+    // Validar que tenemos todos los buffers necesarios
+    if (!params.room_buffer || !params.furniture_buffer || !params.mask_buffer) {
+      throw new Error("Faltan archivos requeridos: room, furniture o mask");
     }
 
-    // Preparar los parámetros para Gradio - formato simplificado para prueba
-    const gradioParams = [
-      params.model_type || "schnell",
-      {
-        "background": backgroundFile,
-        "layers": [],
-        "composite": null
+    // Enviar exactamente lo que espera el Space según el código de ejemplo:
+    // - background: imagen base
+    // - layers: arreglo con UNA capa donde alpha>0 = zona editable
+    // - composite: null
+    const result = await client.predict("/predict", {
+      model_type: params.model_type || "schnell", // Modelo más estable
+      image_and_mask: {
+        background: handle_file(params.room_buffer),
+        layers: [handle_file(params.mask_buffer)],
+        composite: null,
       },
-      params.furniture_image_blob,
-      params.prompt || "",
-      params.seed || 0,
-      params.num_inference_steps || 4,
-      params.max_dimension || 256,
-      params.margin || 0,
-      params.crop !== undefined ? params.crop : true,
-      params.num_images_per_prompt || 1
-    ];
-
-    logger.info('Parámetros preparados para Gradio', {
-      model_type: gradioParams[0],
-      prompt: gradioParams[3],
-      num_inference_steps: gradioParams[5],
-      max_dimension: gradioParams[6],
-      hasBackground: !!gradioParams[1].background,
-      hasFurnitureRef: !!gradioParams[2],
-      totalParams: gradioParams.length
+      furniture_reference: handle_file(params.furniture_buffer),
+      prompt: params.prompt || "",
+      seed: params.seed || 0,
+      num_inference_steps: params.num_inference_steps || 30, // Aumentado para mejor calidad
+      max_dimension: params.max_dimension || 512,
+      margin: params.margin || 32, // Reducido para menos distorsión
+      crop: params.crop !== undefined ? params.crop : false, // Desactivado para preservar fondo
+      num_images_per_prompt: params.num_images_per_prompt || 1,
     });
 
-    logger.info('Enviando solicitud a Gradio...');
-    
-    // Obtener información de la API para usar el endpoint correcto
-    let apiInfo;
-    try {
-      apiInfo = await client.view_api();
-      logger.info('Información de API obtenida', {
-        namedEndpoints: apiInfo?.named_endpoints || [],
-        unnamedEndpoints: apiInfo?.unnamed_endpoints || []
-      });
-    } catch (apiError) {
-      logger.warn('No se pudo obtener información de API, usando índice por defecto', {
-        error: apiError.message
-      });
-    }
-    
-    // Determinar el endpoint correcto
-    let endpoint = "/predict"; // Por defecto usar /predict
-    if (apiInfo && apiInfo.named_endpoints) {
-      // Verificar si /predict está disponible
-      if (apiInfo.named_endpoints['/predict']) {
-        endpoint = "/predict";
-        logger.info('Usando endpoint /predict', { 
-          parameters: apiInfo.named_endpoints['/predict'].parameters?.length || 0 
-        });
-      } else {
-        // Buscar otros endpoints disponibles
-        const availableEndpoints = Object.keys(apiInfo.named_endpoints);
-        if (availableEndpoints.length > 0) {
-          endpoint = availableEndpoints[0];
-          logger.info('Usando endpoint alternativo', { endpoint });
-        }
-      }
-    }
-    
-    // Realizar la predicción
-    const result = await client.predict(endpoint, gradioParams);
-    
-    logger.info('Respuesta recibida de Gradio', {
-      dataLength: result.data ? result.data.length : 0,
-      dataType: typeof result.data
+    logger.info('Respuesta recibida de FurnitureDemo', {
+      dataLength: result?.data ? result.data.length : 0,
+      dataType: typeof result?.data,
+      fullResult: JSON.stringify(result, null, 2).substring(0, 500) + '...'
     });
 
-    // Procesar el resultado
-    if (result.data && result.data.length > 0) {
-      // Gradio puede devolver diferentes formatos, adaptamos según sea necesario
-      const generatedImage = result.data[0];
-      
-      if (typeof generatedImage === 'string') {
-        return generatedImage; // URL o base64
-      } else if (generatedImage && generatedImage.url) {
-        return generatedImage.url; // Objeto con URL
-      } else if (generatedImage && generatedImage.path) {
-        return generatedImage.path; // Ruta del archivo
-      } else {
-        throw new Error('Formato de respuesta inesperado de Gradio');
-      }
-    } else {
-      throw new Error('No se recibió imagen generada de Gradio');
+    // Extraer URL de la imagen generada
+    const imageUrl = result?.data?.[0]?.[0]?.image?.url;
+    
+    if (!imageUrl) {
+      logger.warn('⚠️ Formato inesperado de respuesta:', JSON.stringify(result, null, 2));
+      throw new Error("No se encontró imagen en la respuesta");
     }
+
+    logger.info('Imagen generada exitosamente', { imageUrl });
+    return imageUrl;
 
   } catch (error) {
-    // Manejar diferentes tipos de errores
-    if (!error) {
-      logger.error('Error desconocido en llamada a Gradio API', {
-        error: 'Error object is null or undefined'
-      });
-      return generateLocalFallback(params);
-    }
+    logger.error('❌ Error en /generate:', error);
     
-    // Capturar toda la información disponible del error
-    const errorInfo = {
-      message: error.message || 'Sin mensaje de error',
-      stack: error.stack || 'Sin stack trace',
-      errorType: typeof error,
-      errorConstructor: error.constructor ? error.constructor.name : 'unknown',
-      errorKeys: Object.keys(error),
-      errorString: error.toString(),
-      errorJSON: JSON.stringify(error, Object.getOwnPropertyNames(error)),
-      fullError: error
-    };
-    
-    if (error.message && error.message.includes('Connection')) {
-      logger.error('Error de conexión con Gradio API', errorInfo);
-      logger.warn('Usando fallback local debido a error de conexión');
-      return generateLocalFallback(params);
-    }
-    
-    if (error.message && error.message.includes('handle_file')) {
-      logger.error('Error al procesar archivo para Gradio', errorInfo);
-      logger.warn('Usando fallback local debido a error de archivo');
-      return generateLocalFallback(params);
-    }
-    
-    // Log completo del error para diagnóstico
-    logger.error('Error en llamada a Gradio API - Información completa', errorInfo);
-    
-    // Usar fallback local en lugar de fallar completamente
-    logger.warn('Usando fallback local debido a error en Hugging Face');
+    // Usar fallback local en caso de error
+    logger.warn('Usando fallback local debido a error en FurnitureDemo');
     return generateLocalFallback(params);
   }
 }
 
 // ============================================================================
-// RUTAS
+// RUTAS PRINCIPALES
 // ============================================================================
+
+// Nuevo endpoint basado en el código de ejemplo de FurnitureDemo
+router.post('/generate', 
+  upload.fields([
+    { name: "room", maxCount: 1 },
+    { name: "furniture", maxCount: 1 },
+    { name: "mask", maxCount: 1 },
+  ]),
+  asyncHandler(async (req, res) => {
+    try {
+      // Debug: Verificar archivos recibidos
+      console.log('🔍 Debug - Archivos en req.files:', {
+        files: req.files ? Object.keys(req.files) : 'No files',
+        room: req.files?.room ? req.files.room.length : 'No room files',
+        furniture: req.files?.furniture ? req.files.furniture.length : 'No furniture files',
+        mask: req.files?.mask ? req.files.mask.length : 'No mask files'
+      });
+
+      const room = req.files?.room?.[0];
+      const furniture = req.files?.furniture?.[0];
+      const mask = req.files?.mask?.[0];
+
+      if (!room || !furniture || !mask) {
+        console.log('❌ Error - Archivos faltantes:', {
+          room: !!req.files?.room,
+          furniture: !!req.files?.furniture,
+          mask: !!req.files?.mask
+        });
+        return res.status(400).json({ error: "Faltan archivos requeridos: room, furniture y mask" });
+      }
+
+      logger.info('Procesando solicitud de generación de imagen', {
+        roomSize: room.size,
+        furnitureSize: furniture.size,
+        maskSize: mask.size
+      });
+      
+      // Debug: Verificar contenido de archivos
+      console.log('🔍 Debug - Detalles de archivos:', {
+        room: {
+          originalname: room.originalname,
+          mimetype: room.mimetype,
+          size: room.size,
+          bufferLength: room.buffer.length
+        },
+        furniture: {
+          originalname: furniture.originalname,
+          mimetype: furniture.mimetype,
+          size: furniture.size,
+          bufferLength: furniture.buffer.length
+        },
+        mask: {
+          originalname: mask.originalname,
+          mimetype: mask.mimetype,
+          size: mask.size,
+          bufferLength: mask.buffer.length
+        }
+      });
+
+      // Llamar a la API de Gradio con los buffers de archivos
+      const result = await callGradioAPI({
+        room_buffer: room.buffer,
+        furniture_buffer: furniture.buffer,
+        mask_buffer: mask.buffer,
+        model_type: req.body.model_type || "schnell", // Modelo más estable
+        prompt: req.body.prompt || "",
+        seed: parseInt(req.body.seed) || 0,
+        num_inference_steps: parseInt(req.body.num_inference_steps) || 30, // Mejor calidad
+        max_dimension: parseInt(req.body.max_dimension) || 512,
+        margin: parseInt(req.body.margin) || 32, // Menos distorsión
+        crop: req.body.crop === 'true', // Solo true si explícitamente se solicita
+        num_images_per_prompt: parseInt(req.body.num_images_per_prompt) || 1,
+      });
+
+      logger.info('Imagen generada exitosamente');
+
+      res.json({ 
+        success: true,
+        image: result,
+        message: 'Imagen generada exitosamente'
+      });
+
+    } catch (err) {
+      logger.error("❌ Error en /generate:", err);
+      res.status(500).json({ 
+        success: false,
+        error: err.message || "Error interno del servidor"
+      });
+    }
+  })
+);
 
 // POST /analisis-espacio/generar-furniture - Generar imagen con mueble usando IA
 // Recibe una imagen de habitación, máscara de área y mueble para generar una nueva imagen
@@ -405,34 +389,35 @@ router.post('/generar-furniture', asyncHandler(async (req, res) => {
       prompt: prompt
     });
 
-    // Convertir imágenes para Gradio según la documentación
-    const roomImageUrl = base64ToTempUrl(room_image);
-    const furnitureImageBlob = base64ToBlob(furniture_image);
+    // Convertir imágenes base64 a buffers para usar con la función callGradioAPI correcta
+    const roomBuffer = Buffer.from(room_image.split(',')[1] || room_image, 'base64');
+    const furnitureBuffer = Buffer.from(furniture_image.split(',')[1] || furniture_image, 'base64');
+    const maskBuffer = Buffer.from(mask_image.split(',')[1] || mask_image, 'base64');
 
-    // Preparar parámetros para la API de Gradio según la documentación de Hugging Face
+    // Preparar parámetros según el código de ejemplo de FurnitureDemo
     const gradioParams = {
-      model_type: "schnell",
-      room_image_url: roomImageUrl,
-      furniture_image_blob: furnitureImageBlob,
-      prompt: prompt,
+      room_buffer: roomBuffer,
+      furniture_buffer: furnitureBuffer,
+      mask_buffer: maskBuffer,
+      prompt: prompt || "",
       seed: 0,
-      num_inference_steps: 4,
-      max_dimension: 256,
-      margin: 0,
-      crop: true,
-      num_images_per_prompt: 1
+      num_inference_steps: 30, // Mejor calidad
+      max_dimension: 512,
+      margin: 32, // Menos distorsión
+      crop: false, // Preservar fondo original
+      num_images_per_prompt: 1,
     };
 
-    // Llamar a la API de Gradio
-    const generatedImageUrl = await callGradioAPI(gradioParams);
+    // Llamar a la API de Gradio usando la función correcta
+    const generatedImages = await callGradioAPI(gradioParams);
 
     // Registrar el análisis en la base de datos (opcional)
     // Aquí podrías guardar el análisis en una tabla de análisis_espacios
     
-    logger.info('Imagen generada exitosamente', {
+    logger.info('Imágenes generadas exitosamente', {
       usuarioId: req.usuario ? req.usuario.id : 'test-user',
       muebleId: mueble_id,
-      imageUrl: generatedImageUrl ? 'generada' : 'error'
+      imageCount: generatedImages ? generatedImages.length : 0
     });
 
     // Responder con la imagen generada
@@ -440,13 +425,14 @@ router.post('/generar-furniture', asyncHandler(async (req, res) => {
       success: true,
       message: 'Imagen generada exitosamente',
       data: {
-        generated_image: generatedImageUrl,
+        generated_image: generatedImages[0],
         mueble_id: mueble_id,
         timestamp: new Date().toISOString(),
         parameters: {
           model_type: "schnell",
-          max_dimension: 256,
-          num_inference_steps: 4
+          max_dimension: 512,
+          num_inference_steps: 30,
+          margin: 32
         }
       }
     });
@@ -676,13 +662,15 @@ router.get('/muebles', asyncHandler(async (req, res) => {
       offset
     });
 
-    // Datos estáticos para pruebas de IA
+    // Datos estáticos para pruebas de IA con imágenes base64 de ejemplo
+    const placeholderImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk11ZWJsZTwvdGV4dD4KICA8L3N2Zz4K';
+    
     let muebles = [
       {
         id: 1,
         nombre: 'Sofá moderno gris',
         categoria: 'sofas',
-        imagen: '/images/muebles/sofa-moderno-gris.jpg',
+        imagen: placeholderImage,
         descripcion: 'Sofá de 3 plazas con diseño moderno y tapizado gris',
         precio: 899.99
       },
@@ -690,7 +678,7 @@ router.get('/muebles', asyncHandler(async (req, res) => {
         id: 2,
         nombre: 'Mesa de centro cristal',
         categoria: 'mesas',
-        imagen: '/images/muebles/mesa-centro-cristal.jpg',
+        imagen: placeholderImage,
         descripcion: 'Mesa de centro con superficie de cristal templado',
         precio: 299.99
       },
@@ -698,7 +686,7 @@ router.get('/muebles', asyncHandler(async (req, res) => {
         id: 3,
         nombre: 'Silla ergonómica oficina',
         categoria: 'sillas',
-        imagen: '/images/muebles/silla-ergonomica.jpg',
+        imagen: placeholderImage,
         descripcion: 'Silla de oficina con soporte lumbar',
         precio: 199.99
       },
@@ -706,7 +694,7 @@ router.get('/muebles', asyncHandler(async (req, res) => {
         id: 4,
         nombre: 'Cama matrimonial roble',
         categoria: 'camas',
-        imagen: '/images/muebles/cama-matrimonial-roble.jpg',
+        imagen: placeholderImage,
         descripcion: 'Cama matrimonial en madera de roble',
         precio: 699.99
       },
@@ -714,7 +702,7 @@ router.get('/muebles', asyncHandler(async (req, res) => {
         id: 5,
         nombre: 'Armario empotrado blanco',
         categoria: 'armarios',
-        imagen: '/images/muebles/armario-empotrado-blanco.jpg',
+        imagen: placeholderImage,
         descripcion: 'Armario empotrado de 3 puertas',
         precio: 1299.99
       },
@@ -722,7 +710,7 @@ router.get('/muebles', asyncHandler(async (req, res) => {
         id: 6,
         nombre: 'Estantería industrial',
         categoria: 'estanterias',
-        imagen: '/images/muebles/estanteria-industrial.jpg',
+        imagen: placeholderImage,
         descripcion: 'Estantería de estilo industrial con 5 niveles',
         precio: 399.99
       }

@@ -87,7 +87,52 @@
 
         <!-- Paso 2: Seleccionar área -->
         <div v-else-if="currentStep === 2" class="text-center">
-          <h2 class="text-xl font-semibold mb-4">Selecciona el área donde quieres colocar el mueble</h2>
+          <h2 class="text-xl font-semibold mb-4">Pinta el área donde quieres colocar el mueble</h2>
+          
+          <!-- Controles del pincel -->
+          <div class="mb-4 flex justify-center items-center space-x-4">
+            <!-- Herramientas -->
+            <div class="flex space-x-2 mr-4">
+              <button 
+                @click="konvaState.tool = 'brush'"
+                :class="[
+                  'px-3 py-1 rounded text-sm',
+                  konvaState.tool === 'brush' 
+                    ? 'bg-blue-500 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                ]"
+              >
+                Pincel
+              </button>
+              <button 
+                @click="konvaState.tool = 'eraser'"
+                :class="[
+                  'px-3 py-1 rounded text-sm',
+                  konvaState.tool === 'eraser' 
+                    ? 'bg-blue-500 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                ]"
+              >
+                Borrador
+              </button>
+            </div>
+            <label class="text-sm font-medium text-gray-700">Tamaño:</label>
+            <input 
+              type="range" 
+              v-model="konvaState.brushSize" 
+              min="5" 
+              max="50" 
+              class="w-32"
+            />
+            <span class="text-sm text-gray-600">{{ konvaState.brushSize }}px</span>
+            <button 
+              @click="clearMask"
+              class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+            >
+              Limpiar
+            </button>
+          </div>
+
           <div class="mb-4">
             <div ref="konvaContainer" class="border rounded-lg mx-auto" style="max-width: 600px;"></div>
           </div>
@@ -107,9 +152,46 @@
         <div v-else-if="currentStep === 3" class="text-center">
           <h2 class="text-xl font-semibold mb-4">Elige el mueble que quieres colocar</h2>
           
+          <!-- Opción para subir imagen propia -->
+          <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <h3 class="text-lg font-medium text-blue-800 mb-3">¿Tienes tu propia imagen de mueble?</h3>
+            <div class="flex flex-col items-center space-y-3">
+              <input
+                type="file"
+                ref="customFurnitureInput"
+                @change="handleCustomFurnitureUpload"
+                accept="image/*"
+                class="hidden"
+              />
+              <button
+                @click="$refs.customFurnitureInput.click()"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                📁 Subir mi propia imagen de mueble
+              </button>
+              <p class="text-sm text-blue-600">Sube una imagen de tu mueble personalizado</p>
+              
+              <!-- Vista previa de imagen personalizada -->
+              <div v-if="analisisData.customFurnitureImage" class="mt-3">
+                <img 
+                  :src="analisisData.customFurnitureImage" 
+                  alt="Mueble personalizado" 
+                  class="w-32 h-32 object-cover rounded-lg border-2 border-blue-300"
+                />
+                <p class="text-sm text-green-600 mt-1">✅ Imagen personalizada cargada</p>
+                <button
+                  @click="clearCustomFurniture"
+                  class="text-red-600 hover:text-red-800 text-sm mt-1"
+                >
+                  ❌ Eliminar imagen personalizada
+                </button>
+              </div>
+            </div>
+          </div>
+          
           <!-- Filtro por categoría -->
           <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Filtrar por categoría:</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">O elige del catálogo - Filtrar por categoría:</label>
             <select v-model="analisisData.selectedCategory" @change="filterByCategory" class="form-select">
               <option value="">Todas las categorías</option>
               <option value="sofas">Sofás</option>
@@ -146,7 +228,7 @@
             <button @click="prevStep" class="btn-secondary">Atrás</button>
             <button 
               @click="nextStep" 
-              :disabled="!analisisData.selectedMueble"
+              :disabled="!analisisData.selectedMueble && !analisisData.customFurnitureImage"
               class="btn-primary"
             >
               Generar análisis
@@ -166,11 +248,12 @@
 
           <div v-else-if="analisisData.resultImage" class="text-center">
             <div class="mb-6">
-              <img :src="analisisData.resultImage" alt="Resultado" class="max-w-full h-auto rounded-lg mx-auto">
+              <img :src="analisisData.resultImage" alt="Resultado del análisis" class="max-w-full h-auto rounded-lg shadow-lg mx-auto" />
             </div>
+            
             <div class="flex justify-center space-x-4">
               <button @click="downloadResult" class="btn-primary">
-                Descargar imagen
+                Descargar resultado
               </button>
               <button @click="saveAnalysis" class="btn-secondary">
                 Guardar análisis
@@ -236,7 +319,9 @@ const analisisData = reactive({
   muebles: [],
   filteredMuebles: [],
   resultImage: null,
-  hasSelection: false
+  hasSelection: false,
+  customFurnitureImage: null,
+  customFurnitureFile: null
 })
 
 // Estado de Konva
@@ -245,7 +330,16 @@ const konvaState = reactive({
   layer: null,
   imageNode: null,
   rect: null,
-  transformer: null
+  transformer: null,
+  // Propiedades para el pincel
+  brushMode: true,
+  brushSize: 20,
+  tool: 'brush', // 'brush' | 'eraser' - como en el código de ejemplo
+  maskLayer: null,
+  maskCanvas: null,
+  maskContext: null,
+  isDrawing: false,
+  lastPointerPosition: null
 })
 
 // Métodos de navegación
@@ -276,6 +370,8 @@ const startOver = () => {
   analisisData.selectedCategory = ''
   analisisData.resultImage = null
   analisisData.hasSelection = false
+  analisisData.customFurnitureImage = null
+  analisisData.customFurnitureFile = null
   error.value = ''
   success.value = ''
   
@@ -319,6 +415,50 @@ const handleRoomImageUpload = async (event) => {
   }
 }
 
+// Manejo de imagen personalizada de mueble
+const handleCustomFurnitureUpload = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+  
+  // Validar archivo usando el servicio
+  const validation = analisisEspacioService.validarImagenArchivo(file)
+  if (!validation.valid) {
+    toast.error(validation.error)
+    return
+  }
+  
+  try {
+    loading.value = true
+    
+    // Convertir a base64 usando el servicio
+    const base64 = await analisisEspacioService.fileToBase64(file)
+    
+    // Redimensionar si es necesario
+    const resizedImage = await analisisEspacioService.resizeImage(base64, 512, 512)
+     
+    analisisData.customFurnitureImage = resizedImage
+    analisisData.customFurnitureFile = file
+    
+    // Limpiar selección del catálogo si había una
+    analisisData.selectedMueble = null
+    
+    loading.value = false
+    success.value = 'Imagen de mueble personalizada cargada correctamente'
+    setTimeout(() => success.value = '', 3000)
+  } catch (err) {
+    toast.error('Error al cargar la imagen del mueble')
+    loading.value = false
+    console.error('Error uploading custom furniture image:', err)
+  }
+}
+
+const clearCustomFurniture = () => {
+  analisisData.customFurnitureImage = null
+  analisisData.customFurnitureFile = null
+  success.value = 'Imagen personalizada eliminada'
+  setTimeout(() => success.value = '', 3000)
+}
+
 // Inicialización de Konva
 const initKonva = () => {
   if (!konvaContainer.value || !analisisData.roomImage) return
@@ -353,61 +493,127 @@ const initKonva = () => {
     })
 
     konvaState.layer.add(konvaState.imageNode)
-
-    // Crear rectángulo de selección
-    konvaState.rect = new Konva.Rect({
-      x: width * 0.3,
-      y: height * 0.3,
-      width: width * 0.4,
-      height: height * 0.4,
-      fill: 'rgba(124, 58, 237, 0.3)',
-      stroke: '#7c3aed',
-      strokeWidth: 2,
-      draggable: true
-    })
-
-    konvaState.layer.add(konvaState.rect)
-
-    // Crear transformer
-    konvaState.transformer = new Konva.Transformer({
-      nodes: [konvaState.rect],
-      keepRatio: false,
-      boundBoxFunc: (oldBox, newBox) => {
-        if (newBox.width < 50 || newBox.height < 50) {
-          return oldBox
-        }
-        return newBox
-      }
-    })
-
-    konvaState.layer.add(konvaState.transformer)
     konvaState.layer.draw()
 
-    analisisData.hasSelection = true
-
-    // Eventos
-    konvaState.rect.on('dragmove', () => {
-      const pos = konvaState.rect.position()
-      const size = konvaState.rect.size()
-      
-      // Mantener dentro de los límites
-      if (pos.x < 0) konvaState.rect.x(0)
-      if (pos.y < 0) konvaState.rect.y(0)
-      if (pos.x + size.width > width) konvaState.rect.x(width - size.width)
-      if (pos.y + size.height > height) konvaState.rect.y(height - size.height)
-    })
+    // Inicializar modo pincel directamente
+    initBrushMode()
   }
   
   imageObj.src = analisisData.roomImage
 }
 
 const clearSelection = () => {
-  if (konvaState.rect) {
-    konvaState.rect.destroy()
-    konvaState.transformer.destroy()
-    konvaState.layer.draw()
-    analisisData.hasSelection = false
+  clearMask()
+}
+
+// Funciones del pincel
+
+const initBrushMode = () => {
+  if (!konvaState.stage) return
+  
+  // Crear canvas para la máscara
+  konvaState.maskCanvas = document.createElement('canvas')
+  konvaState.maskCanvas.width = konvaState.stage.width()
+  konvaState.maskCanvas.height = konvaState.stage.height()
+  konvaState.maskContext = konvaState.maskCanvas.getContext('2d')
+  
+  // Fondo TRANSPARENTE (no pintar nada) - según código de ejemplo
+  // NO llenar con negro, dejar transparente para que funcione correctamente con Gradio
+  konvaState.maskContext.lineCap = "round"
+  konvaState.maskContext.lineJoin = "round"
+  
+  // Crear layer para la máscara visual
+  if (konvaState.maskLayer) {
+    konvaState.maskLayer.destroy()
   }
+  
+  konvaState.maskLayer = new Konva.Layer()
+  konvaState.stage.add(konvaState.maskLayer)
+  
+  // Eventos del mouse/touch
+  konvaState.stage.on('mousedown touchstart', startDrawing)
+  konvaState.stage.on('mousemove touchmove', draw)
+  konvaState.stage.on('mouseup touchend', stopDrawing)
+}
+
+const startDrawing = (e) => {
+  if (!konvaState.brushMode) return
+  
+  konvaState.isDrawing = true
+  const pos = konvaState.stage.getPointerPosition()
+  konvaState.lastPointerPosition = pos
+  
+  // Dibujar punto inicial
+  drawBrushStroke(pos, pos)
+}
+
+const draw = (e) => {
+  if (!konvaState.brushMode || !konvaState.isDrawing) return
+  
+  const pos = konvaState.stage.getPointerPosition()
+  
+  if (konvaState.lastPointerPosition) {
+    drawBrushStroke(konvaState.lastPointerPosition, pos)
+  }
+  
+  konvaState.lastPointerPosition = pos
+}
+
+const stopDrawing = () => {
+  if (!konvaState.brushMode) return
+  
+  konvaState.isDrawing = false
+  konvaState.lastPointerPosition = null
+  analisisData.hasSelection = true
+}
+
+const drawBrushStroke = (from, to) => {
+  // Dibujar en el canvas de máscara según código de ejemplo
+  // Modo de composición según herramienta (como en el código de ejemplo)
+  konvaState.maskContext.globalCompositeOperation = (konvaState.tool === 'eraser')
+    ? 'destination-out'
+    : 'source-over'
+  
+  konvaState.maskContext.strokeStyle = 'rgba(255,255,255,1)' // color da igual, importa ALPHA
+  konvaState.maskContext.lineWidth = konvaState.brushSize
+  
+  // Configurar estilo de línea como en el código de ejemplo
+  konvaState.maskContext.lineCap = 'round'
+  konvaState.maskContext.lineJoin = 'round'
+  
+  konvaState.maskContext.beginPath()
+  konvaState.maskContext.moveTo(from.x, from.y)
+  konvaState.maskContext.lineTo(to.x, to.y)
+  konvaState.maskContext.stroke()
+  
+  // Dibujar visualización en Konva
+  const line = new Konva.Line({
+    points: [from.x, from.y, to.x, to.y],
+    stroke: 'rgba(124, 58, 237, 0.6)',
+    strokeWidth: konvaState.brushSize,
+    lineCap: 'round',
+    lineJoin: 'round'
+  })
+  
+  konvaState.maskLayer.add(line)
+  konvaState.maskLayer.draw()
+  
+  // Actualizar estado de selección
+  analisisData.hasSelection = true
+}
+
+const clearMask = () => {
+  if (konvaState.maskLayer) {
+    konvaState.maskLayer.destroy()
+    konvaState.maskLayer = null
+  }
+  
+  if (konvaState.maskCanvas && konvaState.maskContext) {
+    // Limpiar canvas completamente (fondo transparente) según código de ejemplo
+    konvaState.maskContext.clearRect(0, 0, konvaState.maskCanvas.width, konvaState.maskCanvas.height)
+  }
+  
+  analisisData.hasSelection = false
 }
 
 // Cargar catálogo de muebles
@@ -431,10 +637,10 @@ const loadMuebles = async () => {
   }
 }
 
-// Generación del análisis con IA
+// Generación del análisis con IA usando el nuevo endpoint
 const generateAnalysis = async () => {
-  if (!analisisData.roomImage || !analisisData.selectedMueble || !analisisData.hasSelection) {
-    error.value = 'Faltan datos para generar el análisis'
+  if (!analisisData.roomImage || (!analisisData.selectedMueble && !analisisData.customFurnitureImage) || !konvaState.maskCanvas) {
+    error.value = 'Faltan datos para generar el análisis. Asegúrate de subir una imagen de habitación, seleccionar un mueble y pintar el área donde quieres colocarlo.'
     return
   }
 
@@ -442,47 +648,74 @@ const generateAnalysis = async () => {
   error.value = null
 
   try {
-    // Validar área seleccionada
-    const imageSize = { width: konvaState.stage.width(), height: konvaState.stage.height() }
-    const selectionData = {
-      x: konvaState.rect.x(),
-      y: konvaState.rect.y(),
-      width: konvaState.rect.width(),
-      height: konvaState.rect.height()
-    }
+    // Crear máscara usando toBlob() como en el código de ejemplo
+    const maskBlob = await createMaskBlob()
     
-    const validation = analisisEspacioService.validarRectanguloSeleccion(selectionData, imageSize)
-    
-    if (!validation.valid) {
-      throw new Error(validation.error)
-    }
-
-    // Crear máscara usando el servicio
-    const maskImage = await analisisEspacioService.createMaskFromRect(selectionData, imageSize)
-
-    // Obtener imagen del mueble seleccionado
-    let furnitureImage = analisisData.selectedMueble.imagen
-    
-    // Si la imagen del mueble es una URL, necesitamos convertirla a base64
-    if (furnitureImage.startsWith('http') || furnitureImage.startsWith('/')) {
-      // Por ahora usaremos una imagen placeholder en base64
-      // En producción, deberías cargar la imagen y convertirla
-      furnitureImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
-    }
-
-    // Llamar al servicio de generación
-    const response = await analisisEspacioService.generarImagenConIA({
-      room_image: analisisData.roomImage,
-      mask_image: maskImage,
-      furniture_image: furnitureImage,
-      mueble_id: analisisData.selectedMueble.id
+    // Debug: Verificar contenido de la máscara
+    console.log('🔍 Debug - Máscara generada:', {
+      canvasWidth: konvaState.maskCanvas.width,
+      canvasHeight: konvaState.maskCanvas.height,
+      blobSize: maskBlob.size,
+      blobType: maskBlob.type
     })
 
+    // Convertir imágenes base64 a archivos
+    const roomFile = await base64ToFile(analisisData.roomImage, 'room.png')
+    const maskFile = new File([maskBlob], 'mask.png', { type: 'image/png' })
+    
+    // Debug: Verificar archivos creados
+    console.log('🔍 Debug - Archivos creados:', {
+      roomFile: { name: roomFile.name, size: roomFile.size, type: roomFile.type },
+      maskFile: { name: maskFile.name, size: maskFile.size, type: maskFile.type }
+    })
+    
+    // Obtener imagen del mueble y convertirla a archivo
+    let furnitureFile
+    if (analisisData.customFurnitureImage) {
+      // Usar imagen personalizada si está disponible
+      furnitureFile = analisisData.customFurnitureFile
+    } else if (analisisData.selectedMueble.imagen.startsWith('data:')) {
+      furnitureFile = await base64ToFile(analisisData.selectedMueble.imagen, 'furniture.png')
+    } else {
+      // Si es una URL, cargar la imagen y convertirla
+      furnitureFile = await urlToFile(analisisData.selectedMueble.imagen, 'furniture.png')
+    }
+
+    // Debug: Verificar archivo de mueble
+    console.log('🔍 Debug - Archivo de mueble:', {
+      furnitureFile: { name: furnitureFile.name, size: furnitureFile.size, type: furnitureFile.type }
+    })
+
+    // Crear FormData para el nuevo endpoint
+    const formData = new FormData()
+    formData.append('room', roomFile)
+    formData.append('furniture', furnitureFile)
+    formData.append('mask', maskFile)
+    formData.append('prompt', '')
+    formData.append('seed', '0')
+    formData.append('num_inference_steps', '20')
+    formData.append('max_dimension', '512')
+    formData.append('margin', '64')
+    formData.append('crop', 'true')
+    formData.append('num_images_per_prompt', '1')
+    formData.append('model_type', 'dev')
+
+    // Debug: Verificar FormData
+    console.log('🔍 Debug - FormData creado:', {
+      entries: Array.from(formData.entries()).map(([key, value]) => [
+        key, 
+        value instanceof File ? `File(${value.name}, ${value.size}b, ${value.type})` : value
+      ])
+    })
+
+    // Llamar al nuevo endpoint
+    const response = await analisisEspacioService.generateWithFiles(formData)
+
     if (response.success) {
-      analisisData.resultImage = response.data.generated_image
+      analisisData.resultImage = response.image
       toast.success('¡Análisis completado exitosamente!')
     } else {
-      throw new Error(response.message || 'Error al generar la imagen')
+      throw new Error(response.error || 'Error al generar la imagen')
     }
 
   } catch (err) {
@@ -492,6 +725,40 @@ const generateAnalysis = async () => {
   } finally {
     loadingAnalisis.value = false
   }
+}
+
+// Crear máscara RGBA con fondo transparente y trazos opacos en alpha (como en código de ejemplo)
+const createMaskBlob = () => {
+  return new Promise((resolve) => {
+    // Crear un canvas temporal para asegurar el formato correcto
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = konvaState.maskCanvas.width;
+    tempCanvas.height = konvaState.maskCanvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    // Asegurar que el canvas tenga fondo completamente transparente
+    tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+    
+    // Copiar la máscara original
+    tempCtx.drawImage(konvaState.maskCanvas, 0, 0);
+    
+    // Convertir a blob con calidad máxima
+    tempCanvas.toBlob((blob) => resolve(blob), "image/png", 1.0);
+  });
+};
+
+// Función auxiliar para convertir base64 a File
+const base64ToFile = async (base64String, filename) => {
+  const response = await fetch(base64String)
+  const blob = await response.blob()
+  return new File([blob], filename, { type: blob.type })
+}
+
+// Función auxiliar para convertir URL a File
+const urlToFile = async (url, filename) => {
+  const response = await fetch(url)
+  const blob = await response.blob()
+  return new File([blob], filename, { type: blob.type })
 }
 
 const retryAnalysis = () => {
@@ -509,6 +776,8 @@ const downloadResult = () => {
   }
 }
 
+
+
 const saveAnalysis = async () => {
   try {
     // Aquí guardaríamos el análisis en la base de datos
@@ -523,6 +792,9 @@ const saveAnalysis = async () => {
 // Función para seleccionar mueble
 const selectFurniture = (mueble) => {
   analisisData.selectedMueble = mueble
+  // Limpiar imagen personalizada si había una
+  analisisData.customFurnitureImage = null
+  analisisData.customFurnitureFile = null
   success.value = `Mueble "${mueble.nombre}" seleccionado`
   setTimeout(() => success.value = '', 3000)
 }
@@ -542,7 +814,19 @@ onMounted(() => {
 // Cleanup
 onUnmounted(() => {
   if (konvaState.stage) {
+    // Limpiar eventos del pincel
+    konvaState.stage.off('mousedown touchstart')
+    konvaState.stage.off('mousemove touchmove')
+    konvaState.stage.off('mouseup touchend')
+    
+    // Destruir stage
     konvaState.stage.destroy()
+  }
+  
+  // Limpiar canvas de máscara
+  if (konvaState.maskCanvas) {
+    konvaState.maskCanvas = null
+    konvaState.maskContext = null
   }
 })
 </script>

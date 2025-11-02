@@ -144,8 +144,14 @@ export const generarImagenConIA = async (data) => {
 
     console.log('Respuesta de generación recibida:', {
       success: response.data.success,
-      hasImage: !!response.data.data?.generated_image
+      hasImages: !!response.data.data?.generated_images,
+      imageCount: response.data.data?.generated_images?.length || 0
     });
+
+    // Adaptar la respuesta para incluir múltiples imágenes
+    if (response.data.success && response.data.data?.generated_images) {
+      response.data.data.images = response.data.data.generated_images;
+    }
 
     return response.data;
   } catch (error) {
@@ -171,6 +177,57 @@ export const generarImagenConIA = async (data) => {
       throw new Error('No se pudo conectar con el servidor. Verifica tu conexión');
     } else {
       throw new Error('Error al procesar la solicitud');
+    }
+  }
+};
+
+/**
+ * Genera una imagen con IA usando archivos (nuevo endpoint basado en el código de ejemplo)
+ * @param {FormData} formData - FormData con los archivos y parámetros
+ * @returns {Promise<Object>} - Respuesta de la API
+ */
+export const generateWithFiles = async (formData) => {
+  try {
+    console.log('🚀 Enviando solicitud de generación con archivos...');
+    
+    const response = await publicApi.post('/analisis-espacio/generate', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 60000 // 60 segundos para la generación de IA
+    });
+    
+    if (response.data.success) {
+      return {
+        success: true,
+        image: response.data.image,
+        message: 'Análisis completado exitosamente'
+      };
+    } else {
+      console.error('❌ Error en la respuesta:', response.data.error);
+      return {
+        success: false,
+        error: response.data.error || 'Error al generar la imagen'
+      };
+    }
+  } catch (error) {
+    console.error('❌ Error en generateWithFiles:', error);
+    
+    if (error.response) {
+      return {
+        success: false,
+        error: error.response.data?.error || 'Error del servidor'
+      };
+    } else if (error.request) {
+      return {
+        success: false,
+        error: 'No se pudo conectar con el servidor'
+      };
+    } else {
+      return {
+        success: false,
+        error: 'Error inesperado'
+      };
     }
   }
 };
@@ -351,6 +408,7 @@ export const FORMATOS_IMAGEN_SOPORTADOS = [
 
 export default {
   generarImagenConIA,
+  generateWithFiles,
   obtenerCatalogoMuebles,
   obtenerHistorialAnalisis,
   fileToBase64,

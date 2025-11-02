@@ -38,7 +38,11 @@ app.use(helmet({
 
 // CONFIGURACIÓN CORS - Permitir peticiones desde el frontend
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:8080', // URL del frontend
+  origin: [
+    process.env.CORS_ORIGIN || 'http://localhost:8080', // URL del frontend (producción)
+    'http://localhost:5173', // URL del frontend (desarrollo con Vite)
+    'http://127.0.0.1:5173' // Alternativa para localhost
+  ],
   credentials: true, // Permitir cookies y headers de autenticación
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], // Métodos HTTP permitidos
   allowedHeaders: ['Content-Type', 'Authorization'] // Headers permitidos
