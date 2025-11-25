@@ -230,6 +230,14 @@
               >
                 Ver Detalles
               </button>
+
+              <button
+                v-if="canRequestQuote(pedido.estado, pedido.productos_count)"
+                @click.stop="requestQuote(pedido.id)"
+                class="btn-primary text-sm"
+              >
+                Solicitar Cotización
+              </button>
               
               <button
                 v-if="canCancelPedido(pedido.estado)"
@@ -249,17 +257,20 @@
             </div>
           </div>
 
-          <!-- Progreso del pedido -->
+          <!-- Proceso del pedido (etapas) -->
           <div v-if="pedido.estado !== 'cancelado'" class="mt-6">
             <div class="flex items-center justify-between text-sm text-gray-600 mb-2">
-              <span>Progreso del pedido</span>
-              <span>{{ getProgresoPercentage(pedido.estado) }}%</span>
+              <span>Proceso del pedido</span>
             </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-              <div
-                class="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                :style="{ width: getProgresoPercentage(pedido.estado) + '%' }"
-              ></div>
+            <div class="flex items-center space-x-2">
+              <div v-for="(step, idx) in getProcesoSteps(pedido.estado)" :key="step.key" class="flex-1 flex items-center">
+                <div :class="['h-2 w-full rounded-full', step.active ? 'bg-primary-600' : 'bg-gray-200']"></div>
+              </div>
+            </div>
+            <div class="flex justify-between mt-2 text-xs text-gray-600">
+              <span>Borrador</span>
+              <span>En proceso</span>
+              <span>Finalizada</span>
             </div>
           </div>
         </div>
@@ -310,6 +321,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'vue-toastification'
 import api from '@/services/api'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const toast = useToast()
@@ -346,14 +358,15 @@ const debouncedSearch = () => {
 }
 
 // Cargar pedidos
+const authStore = useAuthStore()
 const loadPedidos = async (page = 1) => {
   try {
     isLoading.value = true
     
     const params = {
       page,
-      per_page: pagination.per_page,
-      ...filters
+      limit: pagination.per_page,
+      estado: filters.estado || ''
     }
 
     // Limpiar parámetros vacíos
@@ -363,15 +376,19 @@ const loadPedidos = async (page = 1) => {
       }
     })
 
-    const response = await api.get('/pedidos', { params })
-    
-    pedidos.value = response.data.data || response.data
-    
+    const userId = authStore.user?.id
+    const response = await api.get(`/pedidos/usuario/${userId}`, { params })
+
+    pedidos.value = response.data.pedidos || []
+
     // Actualizar paginación
-    if (response.data.meta) {
-      Object.assign(pagination, response.data.meta)
-    } else if (response.data.pagination) {
-      Object.assign(pagination, response.data.pagination)
+    if (response.data.pagination) {
+      Object.assign(pagination, {
+        current_page: response.data.pagination.page,
+        last_page: response.data.pagination.pages,
+        per_page: response.data.pagination.limit,
+        total: response.data.pagination.total
+      })
     }
   } catch (error) {
     console.error('Error cargando pedidos:', error)
@@ -482,6 +499,25 @@ const reorderPedido = async (id) => {
   }
 }
 
+// Solicitar cotización del pedido (cambia a estado en_cotizacion)
+const canRequestQuote = (estado, productosCount) => {
+  const hasItems = (productosCount || 0) > 0
+  return hasItems && (estado === 'borrador' || estado === 'nuevo')
+}
+
+const requestQuote = async (id) => {
+  const mensaje = prompt('Mensaje para el administrador (opcional):') || ''
+  try {
+    await api.post(`/pedidos/${id}/solicitar-cotizacion`, { mensaje })
+    toast.success('Solicitud de cotización enviada')
+    loadPedidos(pagination.current_page)
+  } catch (error) {
+    console.error('Error solicitando cotización:', error)
+    const msg = error.response?.data?.message || 'No se pudo solicitar la cotización'
+    toast.error(msg)
+  }
+}
+
 // Utilidades
 const canCancelPedido = (estado) => {
   return ['pendiente', 'confirmado'].includes(estado)
@@ -498,7 +534,11 @@ const getEstadoLabel = (estado) => {
     en_produccion: 'En Producción',
     listo: 'Listo',
     entregado: 'Entregado',
-    cancelado: 'Cancelado'
+    cancelado: 'Cancelado',
+    nuevo: 'Nuevo',
+    en_cotizacion: 'En Cotización',
+    aprobado: 'Aprobado',
+    borrador: 'Borrador'
   }
   return labels[estado] || estado
 }
@@ -510,7 +550,11 @@ const getEstadoBadgeClass = (estado) => {
     en_produccion: 'badge-primary',
     listo: 'badge-success',
     entregado: 'badge-success',
-    cancelado: 'badge-error'
+    cancelado: 'badge-error',
+    nuevo: 'badge-secondary',
+    en_cotizacion: 'badge-warning',
+    aprobado: 'badge-info',
+    borrador: 'badge-secondary'
   }
   return classes[estado] || 'badge-secondary'
 }
@@ -525,16 +569,20 @@ const getFechaLabel = (fecha) => {
   return labels[fecha] || fecha
 }
 
-const getProgresoPercentage = (estado) => {
-  const progress = {
-    pendiente: 20,
-    confirmado: 40,
-    en_produccion: 60,
-    listo: 80,
-    entregado: 100,
-    cancelado: 0
-  }
-  return progress[estado] || 0
+// Etapas del proceso: enviada -> en proceso -> finalizada
+const getProcesoSteps = (estado) => {
+  const etapaIndex = (() => {
+    if (['borrador', 'nuevo', 'pendiente'].includes(estado)) return 0
+    if (['en_cotizacion', 'confirmado', 'aprobado', 'en_produccion', 'listo'].includes(estado)) return 1
+    if (['entregado'].includes(estado)) return 2
+    return -1
+  })()
+
+  return [
+    { key: 'enviada', active: etapaIndex >= 0 },
+    { key: 'en_proceso', active: etapaIndex >= 1 },
+    { key: 'finalizada', active: etapaIndex >= 2 },
+  ]
 }
 
 const formatPrice = (price) => {

@@ -14,6 +14,7 @@ import Catalog from '@/views/CatalogoView.vue'
 
 // Vistas de pedidos
 import Orders from '@/views/PedidosView.vue'
+import OrderDetail from '@/views/PedidoDetalleView.vue'
 
 // Vistas de recomendaciones
 import Recommendations from '@/views/RecomendacionesView.vue'
@@ -103,6 +104,15 @@ const routes = [
     meta: { 
       title: 'Mis Pedidos',
       requiresAuth: true // Requiere autenticación
+    }
+  },
+  {
+    path: '/pedidos/:id',
+    name: 'order-detail',
+    component: OrderDetail,
+    meta: {
+      title: 'Detalle de Pedido',
+      requiresAuth: true
     }
   },
 

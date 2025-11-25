@@ -206,15 +206,37 @@ const testConnection = async () => {
   }
 
   try {
-    // Probar conexión básica sin endpoint específico
     logger.info('Configuración de Xano detectada', {
       mainAPI: process.env.XANO_API_URL,
       authAPI: process.env.XANO_AUTH_URL || 'usando main API',
       adminAuthAPI: process.env.XANO_ADMIN_AUTH_URL || process.env.XANO_AUTH_URL || 'sin configurar explícitamente',
       timestamp: new Date().toISOString()
     });
-    
-    return true;
+
+    // Intentar un ping básico a la API principal y de auth
+    const results = { main: null, auth: null };
+    try {
+      const r = await xanoAPI.get('/');
+      results.main = { status: r.status, ok: r.status < 500 };
+    } catch (err) {
+      results.main = { status: err.response?.status || 'network_error', ok: false, message: err.message };
+    }
+
+    try {
+      const ra = await xanoAuthAPI.get('/');
+      results.auth = { status: ra.status, ok: ra.status < 500 };
+    } catch (err) {
+      results.auth = { status: err.response?.status || 'network_error', ok: false, message: err.message };
+    }
+
+    logger.info('Resultado de ping a Xano', results);
+
+    // Considerar conexión válida si al menos una responde sin error de red
+    const isConnected = !!(results.main?.ok || results.auth?.ok);
+    if (!isConnected) {
+      logger.warn('No se pudo conectar a Xano en el arranque', results);
+    }
+    return isConnected;
   } catch (error) {
     logger.error('Error al verificar configuración de Xano', { 
       error: error.message 

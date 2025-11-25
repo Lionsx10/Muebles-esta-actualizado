@@ -145,28 +145,40 @@ const verificarPropietarioPedido = async (req, res, next) => {
       return next();
     }
 
-    // VERIFICAR PROPIETARIO DEL PEDIDO en la base de datos
-    const result = await query(
-      'SELECT usuario_id FROM pedidos WHERE id = $1',
-      [pedidoId]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        error: 'Pedido no encontrado',
-        message: 'El pedido especificado no existe'
-      });
-    }
-
-    // VERIFICAR QUE EL PEDIDO PERTENEZCA AL USUARIO
-    if (result.rows[0].usuario_id !== usuarioId) {
+    // Permitir acceso si es borrador del mismo usuario
+    if (typeof pedidoId === 'string' && pedidoId.startsWith('draft-')) {
+      const expectedId = `draft-${parseInt(usuarioId, 10)}`;
+      if (pedidoId === expectedId) return next();
       return res.status(403).json({
         error: 'Acceso denegado',
-        message: 'Solo puedes acceder a tus propios pedidos'
+        message: 'Solo puedes acceder a tu propio borrador'
       });
     }
 
-    next(); // Permitir acceso al propietario del pedido
+    // Para pedidos reales, verificar con Xano
+    const token = (req.headers.authorization || '').split(' ')[1] || null;
+    try {
+      const pedido = await xanoService.getOrderById(parseInt(pedidoId, 10), token);
+      if (!pedido) {
+        return res.status(404).json({
+          error: 'Pedido no encontrado',
+          message: 'El pedido especificado no existe'
+        });
+      }
+      if ((pedido.usuario_id || pedido.user_id) !== usuarioId) {
+        return res.status(403).json({
+          error: 'Acceso denegado',
+          message: 'Solo puedes acceder a tus propios pedidos'
+        });
+      }
+      next();
+    } catch (err) {
+      console.error('Error verificando pedido con Xano:', err);
+      return res.status(500).json({
+        error: 'Error interno del servidor',
+        message: 'No fue posible verificar el propietario del pedido'
+      });
+    }
   } catch (error) {
     console.error('Error en verificación de propietario de pedido:', error);
     res.status(500).json({

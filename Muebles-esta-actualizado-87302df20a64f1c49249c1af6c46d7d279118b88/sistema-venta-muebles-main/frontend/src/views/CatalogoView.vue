@@ -258,9 +258,9 @@
             <button
               class="btn-primary btn-sm"
               :disabled="!product.disponible"
-              @click.stop="addToCart(product)"
+              @click.stop="addToOrders(product)"
             >
-              {{ product.disponible ? 'Agregar' : 'No disponible' }}
+              {{ product.disponible ? 'Agregar a pedidos' : 'No disponible' }}
             </button>
           </div>
         </div>
@@ -332,9 +332,9 @@
                 <button
                   class="btn-primary"
                   :disabled="!product.disponible"
-                  @click.stop="addToCart(product)"
+                  @click.stop="addToOrders(product)"
                 >
-                  {{ product.disponible ? 'Agregar al carrito' : 'No disponible' }}
+                  {{ product.disponible ? 'Agregar a pedidos' : 'No disponible' }}
                 </button>
               </div>
             </div>
@@ -494,7 +494,7 @@ const sampleProducts = [
     material: "MDF Melamínico",
     medidas: "80cm x 45cm x 85cm",
     disponible: true,
-    imagen_url: "/placeholder-furniture.jpg",
+    imagen_url: "/images/muebles/img12.webp",
     is_favorite: false
   },
   {
@@ -506,7 +506,7 @@ const sampleProducts = [
     material: "MDF con Laminado",
     medidas: "300cm x 60cm x 240cm",
     disponible: true,
-    imagen_url: "/placeholder-furniture.jpg",
+    imagen_url: "/images/muebles/img3.jpg",
     is_favorite: false
   },
   {
@@ -518,7 +518,7 @@ const sampleProducts = [
     material: "MDF Melamínico",
     medidas: "250cm x 200cm x 240cm",
     disponible: true,
-    imagen_url: "/placeholder-furniture.jpg",
+    imagen_url: "/images/muebles/img7.webp",
     is_favorite: false
   },
   {
@@ -530,7 +530,7 @@ const sampleProducts = [
     material: "MDF con Formica",
     medidas: "180cm x 60cm x 240cm",
     disponible: true,
-    imagen_url: "/placeholder-furniture.jpg",
+    imagen_url: "/images/muebles/img9.webp",
     is_favorite: false
   },
   {
@@ -542,7 +542,7 @@ const sampleProducts = [
     material: "MDF Melamínico",
     medidas: "120cm x 60cm x 85cm",
     disponible: true,
-    imagen_url: "/placeholder-furniture.jpg",
+    imagen_url: "/images/muebles/img2.jpg",
     is_favorite: false
   },
   {
@@ -554,7 +554,7 @@ const sampleProducts = [
     material: "Vidrio y MDF",
     medidas: "60cm x 15cm x 80cm",
     disponible: true,
-    imagen_url: "/placeholder-furniture.jpg",
+    imagen_url: "/images/muebles/img11.webp",
     is_favorite: false
   },
   {
@@ -566,7 +566,7 @@ const sampleProducts = [
     material: "MDF con Laminado",
     medidas: "80cm x 35cm x 70cm",
     disponible: true,
-    imagen_url: "/placeholder-furniture.jpg",
+    imagen_url: "/images/muebles/img4.jpg",
     is_favorite: false
   },
   {
@@ -578,7 +578,7 @@ const sampleProducts = [
     material: "MDF Melamínico",
     medidas: "100cm x 45cm x 160cm",
     disponible: true,
-    imagen_url: "/placeholder-furniture.jpg",
+    imagen_url: "/images/muebles/img15.webp",
     is_favorite: false
   }
 ]
@@ -738,17 +738,42 @@ const toggleFavorite = async (product) => {
   }
 }
 
-// Agregar al carrito
-const addToCart = async (product) => {
+// Agregar a Mis Pedidos creando/actualizando un pedido borrador del usuario
+const addToOrders = async (product) => {
   try {
-    await api.post('/carrito', {
-      producto_id: product.id,
-      cantidad: 1
-    })
-    toast.success(`${product.nombre} agregado al carrito`)
+    const payload = {
+      descripcion: `${product.nombre} - ${product.descripcion || ''}`.trim(),
+      cantidad: 1,
+      precio_unitario: Number(
+        product.precio_base ?? product.precio_oferta ?? product.precio ?? 0
+      )
+    }
+    // Solo incluir imagen_url si es una cadena válida
+    if (typeof product.imagen_url === 'string' && product.imagen_url.length > 0) {
+      payload.imagen_url = product.imagen_url
+    }
+    // Normalizar estilo: convertir arrays/objetos a texto y omitir null/undefined
+    let estiloVal = product.estilo
+    if (Array.isArray(estiloVal)) {
+      estiloVal = estiloVal.filter(v => !!v).join(', ')
+    } else if (estiloVal && typeof estiloVal !== 'string') {
+      estiloVal = String(estiloVal)
+    }
+    if (typeof estiloVal === 'string' && estiloVal.trim().length > 0) {
+      payload.estilo = estiloVal.trim()
+    }
+    if (product.medidas) payload.medidas = product.medidas
+    if (product.material) payload.material = product.material
+    if (product.color) payload.color = product.color
+    if (product.observaciones) payload.observaciones = product.observaciones
+
+    await api.post('/pedidos/draft/detalles', payload)
+    toast.success(`${product.nombre} agregado a Mis Pedidos`)
+    router.push('/pedidos')
   } catch (error) {
-    console.error('Error al agregar al carrito:', error)
-    toast.error('Error al agregar al carrito')
+    console.error('Error al agregar a pedidos:', error)
+    const msg = error.response?.data?.message || 'Error al agregar a Mis Pedidos'
+    toast.error(msg)
   }
 }
 

@@ -1,7 +1,7 @@
 // Importaciones necesarias para el módulo de gestión de pedidos
 const express = require('express');
 const Joi = require('joi'); // Para validación de datos de entrada
-const { query, transaction } = require('../config/database'); // Funciones para consultas y transacciones de base de datos
+const { query, transaction, getPaginated } = require('../config/database'); // Funciones para consultas, transacciones y consultas paginadas (Xano)
 const { verificarToken, verificarAdmin, verificarPropietarioPedido } = require('../middleware/auth'); // Middleware de autenticación y autorización
 const { asyncHandler, ValidationError, NotFoundError, ForbiddenError } = require('../middleware/errorHandler'); // Manejo de errores
 const { createLogger } = require('../middleware/logger'); // Sistema de logging
@@ -9,6 +9,9 @@ const { createLogger } = require('../middleware/logger'); // Sistema de logging
 // Inicialización del router de Express y logger específico para pedidos
 const router = express.Router();
 const logger = createLogger('pedidos');
+// Integraciones: servicio Xano y almacenamiento de borradores en memoria
+const xanoService = require('../services/xanoService');
+const draftStore = require('../services/draftStore');
 
 // Configuración de estados y transiciones de pedidos
 
@@ -64,6 +67,28 @@ const actualizarCotizacionSchema = Joi.object({
     })
   ).required(),
   total_estimado: Joi.number().precision(2).min(0).required()
+});
+
+// Esquema para agregar un detalle a un pedido existente (borrador)
+const agregarDetalleSchema = Joi.object({
+  descripcion: Joi.string().min(10).max(1000).required().messages({
+    'string.min': 'La descripción debe tener al menos 10 caracteres',
+    'string.max': 'La descripción no puede exceder 1000 caracteres',
+    'any.required': 'La descripción es obligatoria'
+  }),
+  medidas: Joi.string().max(200).optional(),
+  material: Joi.string().max(100).optional(),
+  color: Joi.string().max(50).optional(),
+  cantidad: Joi.number().integer().min(1).default(1),
+  observaciones: Joi.string().max(500).optional(),
+  precio_unitario: Joi.number().precision(2).min(0).optional(),
+  imagen_url: Joi.string().max(500).optional(),
+  estilo: Joi.string().max(100).optional()
+});
+
+// Esquema opcional para que el usuario agregue un mensaje al solicitar cotización
+const solicitarCotizacionSchema = Joi.object({
+  mensaje: Joi.string().max(1000).optional()
 });
 
 /**
@@ -149,6 +174,74 @@ router.post('/', verificarToken, asyncHandler(async (req, res) => {
 router.get('/:id', verificarToken, verificarPropietarioPedido, asyncHandler(async (req, res) => {
   const { id } = req.params;
 
+  // Si es un borrador en memoria, responder desde draftStore sin tocar la BD
+  if (typeof id === 'string' && id.startsWith('draft-')) {
+    const draft = draftStore.getDraftByUser(req.usuario.id);
+    if (!draft || draft.id !== id) {
+      throw new NotFoundError('Pedido borrador no encontrado');
+    }
+
+    const resumen = draftStore.toSummary(draft);
+    const historial = [];
+
+    return res.json({
+      message: 'Pedido borrador obtenido exitosamente',
+      pedido: {
+        id: draft.id,
+        usuario_id: draft.usuario_id,
+        estado: draft.estado,
+        created_at: resumen.created_at,
+        numero_pedido: resumen.numero_pedido,
+        total: resumen.total,
+        productos: resumen.productos,
+        detalles: draft.detalles,
+        historial
+      }
+    });
+  }
+
+  // Intentar obtener el pedido y sus detalles desde Xano primero
+  try {
+    const token = (req.headers.authorization || '').split(' ')[1] || null;
+    const pedidoX = await xanoService.getOrderById(parseInt(id, 10), token);
+
+    // Consultar detalles en Xano usando la tabla 'detalle_pedido' (fallback: 'detalles_pedido')
+    let detallesX = [];
+    try {
+      const data1 = await getPaginated('/detalle_pedido', 1, 100, { pedido_id: parseInt(id, 10) }, token);
+      detallesX = Array.isArray(data1) ? data1 : (data1?.items || []);
+    } catch (e1) {
+      logger.warn('Fallo en /detalle_pedido, probando /detalles_pedido', { status: e1.response?.status, message: e1.message });
+      const data2 = await getPaginated('/detalles_pedido', 1, 100, { pedido_id: parseInt(id, 10) }, token);
+      detallesX = Array.isArray(data2) ? data2 : (data2?.items || []);
+    }
+
+    // Normalizar campos a los esperados por el frontend
+    const detallesNormalizados = (detallesX || []).map(d => ({
+      id: d.id,
+      descripcion: d.descripcion,
+      medidas: d.medidas,
+      material: d.material,
+      color: d.color,
+      cantidad: d.cantidad || 1,
+      observaciones: d.observaciones || null,
+      precio_unitario: typeof d.cotizacion === 'number' ? d.cotizacion : null,
+      imagen_url: d.imagen_referencia_url || d.imagen_url || null,
+      estilo: d.estilo || null
+    }));
+
+    return res.json({
+      message: 'Pedido obtenido exitosamente (Xano)',
+      pedido: {
+        ...pedidoX,
+        detalles: detallesNormalizados,
+        historial: []
+      }
+    });
+  } catch (xErr) {
+    logger.warn('Fallo al obtener pedido desde Xano, usando BD local', { id, message: xErr.message, status: xErr.response?.status });
+  }
+
   // Obtener información principal del pedido junto con datos del usuario
   const pedidoResult = await query(`
     SELECT 
@@ -200,49 +293,33 @@ router.get('/usuario/:id', verificarToken, asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { page = 1, limit = 10, estado = '' } = req.query;
 
-  // Verificar permisos: solo el propio usuario o administrador pueden ver los pedidos
   if (req.usuario.rol !== 'administrador' && parseInt(id) !== req.usuario.id) {
     throw new ForbiddenError('Solo puedes ver tus propios pedidos');
   }
 
-  const offset = (parseInt(page) - 1) * parseInt(limit);
-  
-  // Construir filtros dinámicamente
-  let whereClause = 'WHERE p.usuario_id = $1';
-  const valores = [id];
-  let contador = 2;
-
-  // Filtro opcional por estado
-  if (estado) {
-    whereClause += ` AND p.estado = $${contador}`;
-    valores.push(estado);
-    contador++;
+  const token = (req.headers.authorization || '').split(' ')[1] || null;
+  let pedidos = [];
+  try {
+    const data = await xanoService.getOrdersByUser(parseInt(id, 10), { estado, page, limit }, token);
+    pedidos = Array.isArray(data) ? data : (data?.items || []);
+  } catch (err) {
+    logger.warn('Fallo al obtener pedidos desde Xano, devolviendo lista vacía', { message: err.message });
+    pedidos = [];
   }
 
-  // Obtener el total de registros que coinciden con los filtros
-  const totalResult = await query(`
-    SELECT COUNT(*) as total FROM pedidos p ${whereClause}
-  `, valores);
-  
-  const total = parseInt(totalResult.rows[0].total);
+  const draft = draftStore.getDraftByUser(parseInt(id, 10));
+  if (draft) {
+    pedidos = [draftStore.toSummary(draft), ...pedidos];
+  }
 
-  // Obtener pedidos paginados con información resumida
-  valores.push(parseInt(limit), offset);
-  const resultado = await query(`
-    SELECT 
-      p.id, p.estado, p.fecha_creacion, p.fecha_entrega, p.total_estimado,
-      COUNT(dp.id) as cantidad_items
-    FROM pedidos p
-    LEFT JOIN detalles_pedido dp ON p.id = dp.pedido_id
-    ${whereClause}
-    GROUP BY p.id, p.estado, p.fecha_creacion, p.fecha_entrega, p.total_estimado
-    ORDER BY p.fecha_creacion DESC
-    LIMIT $${contador} OFFSET $${contador + 1}
-  `, valores);
+  const total = pedidos.length;
+  const start = (parseInt(page) - 1) * parseInt(limit);
+  const end = start + parseInt(limit);
+  const paged = pedidos.slice(start, end);
 
   res.json({
     message: 'Pedidos obtenidos exitosamente',
-    pedidos: resultado.rows,
+    pedidos: paged,
     pagination: {
       page: parseInt(page),
       limit: parseInt(limit),
@@ -473,6 +550,169 @@ router.put('/:id/cotizacion', verificarToken, verificarAdmin, asyncHandler(async
     message: 'Cotización actualizada exitosamente',
     pedido: resultado
   });
+}));
+
+/**
+ * POST /pedidos/draft/detalles - Agregar detalle al pedido borrador del usuario
+ * Si no existe un pedido en estado 'nuevo' para el usuario, se crea y se añade el detalle
+ */
+router.post('/draft/detalles', verificarToken, asyncHandler(async (req, res) => {
+  const { error, value } = agregarDetalleSchema.validate(req.body);
+  if (error) {
+    throw new ValidationError(error.details[0].message);
+  }
+
+  const { draft, detalle } = draftStore.addDetail(req.usuario.id, value);
+
+  logger.info('Detalle agregado a borrador en memoria', {
+    pedidoId: draft.id,
+    usuarioId: req.usuario.id,
+    detalleId: detalle.id
+  });
+
+  res.status(201).json({
+    message: 'Detalle agregado al pedido borrador',
+    pedido: { id: draft.id, estado: draft.estado },
+    detalle
+  });
+}));
+
+/**
+ * POST /pedidos/:id/solicitar-cotizacion - Solicitar cotización (usuario propietario)
+ * Permite al usuario propietario de un pedido pasar el estado a 'en_cotizacion' y notifica a administradores
+ */
+router.post('/:id/solicitar-cotizacion', verificarToken, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { error, value } = solicitarCotizacionSchema.validate(req.body || {});
+  if (error) {
+    throw new ValidationError(error.details[0].message);
+  }
+  const { mensaje = '' } = value;
+
+  // Si es un borrador en memoria, crear pedido en Xano directamente
+  if (typeof id === 'string' && id.startsWith('draft-')) {
+    const draft = draftStore.getDraftByUser(req.usuario.id);
+    if (!draft || draft.id !== id) {
+      throw new NotFoundError('Borrador no encontrado');
+    }
+
+    const token = (req.headers.authorization || '').split(' ')[1] || null;
+    let created;
+    try {
+      created = await xanoService.createOrder({
+        usuario_id: req.usuario.id,
+        estado: 'en_cotizacion',
+        notas_cliente: mensaje || undefined,
+        detalles: draft.detalles,
+      }, token);
+    } catch (err) {
+      logger.error('Error creando pedido en Xano desde borrador', { message: err.message });
+      throw new Error('No fue posible crear el pedido en el servidor');
+    }
+
+    // Asegurar estado en_cotizacion
+    try {
+      if (created?.estado !== 'en_cotizacion' && created?.id) {
+        await xanoService.updateOrderStatus(created.id, { estado: 'en_cotizacion' }, token);
+      }
+    } catch (err) {
+      logger.warn('No se pudo actualizar estado del pedido en Xano', { message: err.message });
+    }
+
+    draftStore.clearDraft(req.usuario.id);
+    logger.info('Solicitud de cotización enviada, borrador convertido a pedido', { usuarioId: req.usuario.id, pedidoId: created?.id });
+    return res.status(200).json({
+      message: 'Solicitud de cotización enviada correctamente',
+      pedido: created,
+    });
+  }
+
+  // Para IDs reales (persistidos), delegar a Xano
+  const token = (req.headers.authorization || '').split(' ')[1] || null;
+  let pedido;
+  try {
+    pedido = await xanoService.getOrderById(parseInt(id, 10), token);
+  } catch (err) {
+    throw new NotFoundError('Pedido no encontrado');
+  }
+  if (pedido?.estado !== 'nuevo') {
+    throw new ForbiddenError('Solo puedes solicitar cotización para pedidos en estado "nuevo"');
+  }
+  let actualizado = pedido;
+  try {
+    actualizado = await xanoService.updateOrderStatus(parseInt(id, 10), { estado: 'en_cotizacion' }, token);
+  } catch (err) {
+    logger.error('Error actualizando estado en Xano', { message: err.message });
+    throw new Error('No fue posible actualizar el estado del pedido');
+  }
+
+  logger.info('Solicitud de cotización enviada por usuario', {
+    pedidoId: parseInt(id, 10),
+    usuarioId: req.usuario.id,
+  });
+  res.status(200).json({ message: 'Solicitud de cotización enviada correctamente', pedido: actualizado });
+}));
+
+/**
+ * POST /pedidos/:id/seed-detalles - Poblar detalles de un pedido en Xano
+ * Crea algunos registros de prueba en la tabla 'detalle_pedido' (fallback a 'detalles_pedido')
+ * Requiere que el usuario sea propietario del pedido o admin.
+ */
+router.post('/:id/seed-detalles', verificarToken, verificarPropietarioPedido, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const orderId = parseInt(id, 10);
+  const token = (req.headers.authorization || '').split(' ')[1] || null;
+
+  // Verificar que el pedido exista en Xano
+  let pedido;
+  try {
+    pedido = await xanoService.getOrderById(orderId, token);
+  } catch (err) {
+    throw new NotFoundError('Pedido no encontrado en Xano');
+  }
+
+  const muestras = [
+    {
+      pedido_id: orderId,
+      descripcion: 'Mueble bajo para sala con puertas y estantes',
+      medidas: '120x45x60 cm',
+      material: 'MDF laminado',
+      color: 'Blanco',
+      imagen_referencia_url: 'https://via.placeholder.com/800x600?text=Mueble+Sala',
+      cotizacion: 250.00
+    },
+    {
+      pedido_id: orderId,
+      descripcion: 'Mesa de comedor rectangular con acabado natural',
+      medidas: '160x90x75 cm',
+      material: 'Madera de pino',
+      color: 'Natural',
+      imagen_referencia_url: 'https://via.placeholder.com/800x600?text=Mesa+Comedor',
+      cotizacion: 480.00
+    },
+    {
+      pedido_id: orderId,
+      descripcion: 'Estantería modular de tres niveles',
+      medidas: '90x35x180 cm',
+      material: 'Melamina',
+      color: 'Roble',
+      imagen_referencia_url: 'https://via.placeholder.com/800x600?text=Estanteria',
+      cotizacion: 320.00
+    }
+  ];
+
+  const creados = [];
+  for (const det of muestras) {
+    try {
+      const creado = await xanoService.createOrderDetail(det, token);
+      creados.push(creado);
+    } catch (err) {
+      logger.error('Error creando detalle de pedido de prueba', { message: err.message });
+    }
+  }
+
+  logger.info('Detalles de pedido de prueba creados', { pedidoId: orderId, cantidad: creados.length, usuarioId: req.usuario.id });
+  res.status(201).json({ message: 'Detalles creados', cantidad: creados.length, detalles: creados });
 }));
 
 /**

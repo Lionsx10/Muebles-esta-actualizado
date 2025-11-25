@@ -426,6 +426,59 @@ class XanoService {
     }
   }
 
+  // Obtener detalles del pedido desde Xano, guiándonos por la tabla 'detalle_pedido'
+  // Intenta primero '/detalle_pedido' y luego '/detalles_pedido' como fallback
+  async getOrderDetails(orderId, token) {
+    const endpointsToTry = ['/detalle_pedido', '/detalles_pedido'];
+    let result = null;
+    let lastError = null;
+    for (const ep of endpointsToTry) {
+      try {
+        logger.info('Intentando obtener detalles de pedido en Xano', { endpoint: ep, orderId });
+        const data = await getPaginated(ep, 1, 100, { pedido_id: orderId }, token);
+        // Xano puede devolver array directo o un objeto con 'items'
+        result = Array.isArray(data) ? data : (data?.items || []);
+        if (Array.isArray(result)) {
+          return result;
+        }
+      } catch (err) {
+        lastError = err;
+        logger.warn('Fallo al obtener detalles de pedido en Xano', { endpoint: ep, status: err.response?.status, message: err.message });
+        continue;
+      }
+    }
+    // Si ambos endpoints fallan, propagar el último error
+    throw lastError || new Error('No fue posible obtener detalles del pedido en Xano');
+  }
+
+  // Crear un detalle de pedido en Xano en tabla 'detalle_pedido' con fallback a 'detalles_pedido'
+  async createOrderDetail(detail, token) {
+    const payload = {
+      pedido_id: detail.pedido_id,
+      descripcion: detail.descripcion,
+      medidas: detail.medidas || null,
+      material: detail.material || null,
+      color: detail.color || null,
+      imagen_referencia_url: detail.imagen_referencia_url || null,
+      cotizacion: typeof detail.cotizacion === 'number' ? detail.cotizacion : null
+    };
+    try {
+      const created = await post('/detalle_pedido', payload, token);
+      logger.info('Detalle de pedido creado en Xano', { orderId: detail.pedido_id, detalleId: created.id });
+      return created;
+    } catch (err1) {
+      logger.warn('Fallo crear detalle en /detalle_pedido, probando /detalles_pedido', { status: err1.response?.status, message: err1.message });
+      try {
+        const created2 = await post('/detalles_pedido', payload, token);
+        logger.info('Detalle de pedido creado en Xano (fallback)', { orderId: detail.pedido_id, detalleId: created2.id });
+        return created2;
+      } catch (err2) {
+        logger.error('Error al crear detalle de pedido en Xano', { orderId: detail.pedido_id, error: err2.message });
+        throw err2;
+      }
+    }
+  }
+
   async updateOrderStatus(id, statusData, token) {
     try {
       const response = await patch(this.endpoints.pedidos.updateStatus(id), statusData, token);
