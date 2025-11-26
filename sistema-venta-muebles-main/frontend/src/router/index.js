@@ -6,9 +6,13 @@ import { useAuthStore } from '@/stores/auth'
 import Home from '@/views/HomeView.vue'
 import Login from '@/views/auth/LoginView.vue'
 import Register from '@/views/auth/RegisterView.vue'
+import ForgotPassword from '@/views/auth/ForgotPasswordView.vue'
+import ResetPassword from '@/views/auth/ResetPasswordView.vue'
 
 // Vistas del catálogo
 import Catalog from '@/views/CatalogoView.vue'
+// Vista de cotización
+import Cotizacion from '@/views/CotizacionView.vue'
 
 // Vistas de pedidos
 import Orders from '@/views/PedidosView.vue'
@@ -41,6 +45,15 @@ const routes = [
     }
   },
   {
+    path: '/cotizacion',
+    name: 'cotizacion',
+    component: Cotizacion,
+    meta: {
+      title: 'Cotización',
+      requiresAuth: true
+    }
+  },
+  {
     path: '/login',
     name: 'login',
     component: Login,
@@ -56,6 +69,26 @@ const routes = [
     component: Register,
     meta: { 
       title: 'Registrarse',
+      requiresAuth: false,
+      hideForAuth: true // Se oculta para usuarios ya autenticados
+    }
+  },
+  {
+    path: '/auth/forgot-password',
+    name: 'forgot-password',
+    component: ForgotPassword,
+    meta: { 
+      title: 'Recuperar Contraseña',
+      requiresAuth: false,
+      hideForAuth: true // Se oculta para usuarios ya autenticados
+    }
+  },
+  {
+    path: '/auth/reset-password/:token',
+    name: 'reset-password',
+    component: ResetPassword,
+    meta: { 
+      title: 'Restablecer Contraseña',
       requiresAuth: false,
       hideForAuth: true // Se oculta para usuarios ya autenticados
     }
@@ -133,7 +166,7 @@ const routes = [
     name: 'dashboard',
     component: AdminDashboard,
     meta: { 
-      title: 'Dashboard',
+      title: 'Mi Área Personal',
       requiresAuth: true // Requiere autenticación
     }
   },
@@ -172,12 +205,21 @@ router.beforeEach(async (to, from, next) => {
   // Actualizar el título de la página dinámicamente
   document.title = to.meta.title ? `${to.meta.title} - Sistema de Muebles` : 'Sistema de Muebles'
   
-  // Verificar si el usuario está autenticado cuando hay un token
-  if (!authStore.isAuthenticated && authStore.token) {
+  // Verificar si hay un token pero no hay datos de usuario (página recargada)
+  if (authStore.token && !authStore.user) {
     try {
-      await authStore.verifyToken() // Verificar validez del token
+      await authStore.verifyToken() // Verificar validez del token y obtener datos del usuario
     } catch (error) {
-      authStore.logout() // Limpiar token inválido
+      console.warn('Token inválido al navegar:', error)
+      // Solo hacer logout si estamos intentando acceder a una ruta protegida
+      if (to.meta.requiresAuth) {
+        authStore.logout()
+        next({ 
+          name: 'login', 
+          query: { redirect: to.fullPath }
+        })
+        return
+      }
     }
   }
   

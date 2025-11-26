@@ -24,7 +24,12 @@ class XanoService {
         update: (id) => `/usuarios/${id}`,
         delete: (id) => `/usuarios/${id}`,
         profile: '/usuarios/profile',
-        changePassword: '/usuarios/change-password'
+        changePassword: '/usuarios/change-password',
+        getByEmail: '/usuarios/by-email',
+        saveResetToken: '/usuarios/save-reset-token',
+        verifyResetToken: '/usuarios/verify-reset-token',
+        updatePassword: '/usuarios/update-password',
+        deleteResetToken: '/usuarios/delete-reset-token'
       },
       
       // Endpoints de pedidos
@@ -37,6 +42,25 @@ class XanoService {
         updateStatus: (id) => `/pedidos/${id}/status`,
         updateQuote: (id) => `/pedidos/${id}/quote`,
         byUser: (userId) => `/pedidos/user/${userId}`
+      },
+      // Variantes alternativas en singular (algunos workspaces de Xano usan nombres de tabla)
+      pedidoAlt: {
+        list: '/pedido',
+        create: '/pedido',
+        getById: (id) => `/pedido/${id}`,
+        update: (id) => `/pedido/${id}`,
+        delete: (id) => `/pedido/${id}`,
+        updateStatus: (id) => `/pedido/${id}/status`,
+        updateQuote: (id) => `/pedido/${id}/quote`,
+        byUser: (userId) => `/pedido/user/${userId}`
+      },
+
+      // Endpoints de detalles de pedido (compatibles con dos convenciones)
+      detallesPedido: {
+        create: '/detalle_pedido',
+        createAlt: '/detalles_pedido',
+        getById: (id) => `/detalle_pedido/${id}`,
+        getByIdAlt: (id) => `/detalles_pedido/${id}`,
       },
       
       // Endpoints del catálogo
@@ -80,11 +104,21 @@ class XanoService {
   // Métodos de autenticación
   async login(credentials) {
     try {
-      const response = await authPost(this.endpoints.auth.login, credentials);
+      const loginResponse = await authPost(this.endpoints.auth.login, credentials);
       logger.info('Usuario autenticado exitosamente', { 
         email: credentials.email 
       });
-      return response;
+      
+      // Obtener información completa del usuario usando el token
+      const userInfo = await this.me(loginResponse.authToken);
+      
+      // Combinar la respuesta del login con la información del usuario
+      const completeResponse = {
+        authToken: loginResponse.authToken,
+        user: userInfo
+      };
+      
+      return completeResponse;
     } catch (error) {
       logger.error('Error en login', { 
         email: credentials.email, 
@@ -227,14 +261,45 @@ class XanoService {
   // Métodos de pedidos
   async getOrders(params = {}, token) {
     try {
-      const response = await getPaginated(this.endpoints.pedidos.list, 
-        params.page || 1, 
-        params.limit || 10, 
-        params, 
+      const response = await getPaginated(this.endpoints.pedidos.list,
+        params.page || 1,
+        params.limit || 10,
+        params,
         token
       );
       return response;
     } catch (error) {
+      const isNotFound = (error.response?.status === 404) || /Unable to locate request/i.test(error.message || '');
+      if (isNotFound) {
+        try {
+          const altResponse = await getPaginated(this.endpoints.pedidoAlt.list,
+            params.page || 1,
+            params.limit || 10,
+            params,
+            token
+          );
+          return altResponse;
+        } catch (altErr) {
+          // Devolver vacío si tampoco existe la variante singular
+          const page = params.page || 1;
+          const limit = params.limit || 10;
+          const notFound = (altErr.response?.status === 404) || /Unable to locate request|Endpoint/i.test(altErr.message || '');
+          if (notFound) {
+            logger.warn('Endpoints de pedidos no disponibles en Xano; devolviendo vacío');
+            return {
+              data: [],
+              pagination: {
+                page,
+                per_page: limit,
+                total: 0,
+                pages: 0
+              }
+            };
+          }
+          logger.error('Error en fallback al obtener pedidos', { error: altErr.message });
+          throw altErr;
+        }
+      }
       logger.error('Error al obtener pedidos', { error: error.message });
       throw error;
     }
@@ -249,16 +314,110 @@ class XanoService {
       });
       return response;
     } catch (error) {
+      // Si el endpoint plural no existe, intentar la variante singular.
+      const status = error?.response?.status;
+      if (status === 404) {
+        try {
+          const responseAlt = await post(this.endpoints.pedidoAlt.create, orderData, token);
+          logger.info('Pedido creado exitosamente (endpoint alternativo)', { 
+            orderId: responseAlt.id,
+            userId: orderData.usuario_id 
+          });
+          return responseAlt;
+        } catch (errorAlt) {
+          // Intentar en el grupo de AUTH por si los endpoints viven allí
+          try {
+            const responseAuthAlt = await authPost(this.endpoints.pedidoAlt.create, orderData, token);
+            logger.info('Pedido creado exitosamente (grupo auth, endpoint singular)', { 
+              orderId: responseAuthAlt.id,
+              userId: orderData.usuario_id 
+            });
+            return responseAuthAlt;
+          } catch (errorAuthAlt) {
+            try {
+              const responseAuthPlural = await authPost(this.endpoints.pedidos.create, orderData, token);
+              logger.info('Pedido creado exitosamente (grupo auth, endpoint plural)', { 
+                orderId: responseAuthPlural.id,
+                userId: orderData.usuario_id 
+              });
+              return responseAuthPlural;
+            } catch (errorAuthPlural) {
+              logger.error('Error al crear pedido (todas las variantes)', { 
+                errorPluralMain: error?.message, 
+                errorSingularMain: errorAlt?.message, 
+                errorSingularAuth: errorAuthAlt?.message,
+                errorPluralAuth: errorAuthPlural?.message
+              });
+              throw errorAuthPlural;
+            }
+          }
+        }
+      }
       logger.error('Error al crear pedido', { error: error.message });
+      throw error;
+    }
+  }
+
+  // Crear detalle del pedido (cotización por ítem)
+  async createOrderDetail(detailData, token) {
+    try {
+      // Intento principal
+      const created = await post(this.endpoints.detallesPedido.create, detailData, token);
+      logger.info('Detalle de pedido creado', { detalleId: created.id, pedidoId: detailData.pedido_id });
+      return created;
+    } catch (error) {
+      // Si el endpoint principal no existe en Xano, probar alternativa en plural
+      const status = error?.response?.status;
+      if (status === 404) {
+        try {
+          const createdAlt = await post(this.endpoints.detallesPedido.createAlt, detailData, token);
+          logger.info('Detalle de pedido creado (endpoint alternativo)', { detalleId: createdAlt.id, pedidoId: detailData.pedido_id });
+          return createdAlt;
+        } catch (errorAlt) {
+          // Probar en grupo auth
+          try {
+            const createdAuth = await authPost(this.endpoints.detallesPedido.create, detailData, token);
+            logger.info('Detalle de pedido creado (grupo auth, singular)', { detalleId: createdAuth.id, pedidoId: detailData.pedido_id });
+            return createdAuth;
+          } catch (errorAuthSingular) {
+            try {
+              const createdAuthAlt = await authPost(this.endpoints.detallesPedido.createAlt, detailData, token);
+              logger.info('Detalle de pedido creado (grupo auth, plural)', { detalleId: createdAuthAlt.id, pedidoId: detailData.pedido_id });
+              return createdAuthAlt;
+            } catch (errorAuthPlural) {
+              logger.error('Error al crear detalle (todas las variantes)', { 
+                errorSingularMain: error?.message, 
+                errorPluralMain: errorAlt?.message,
+                errorSingularAuth: errorAuthSingular?.message,
+                errorPluralAuth: errorAuthPlural?.message
+              });
+              throw errorAuthPlural;
+            }
+          }
+        }
+      }
+      logger.error('Error al crear detalle', { error: error.message });
       throw error;
     }
   }
 
   async getOrderById(id, token) {
     try {
+      // Intento principal: endpoint plural
       const response = await get(this.endpoints.pedidos.getById(id), {}, token);
       return response;
     } catch (error) {
+      const isNotFound = (error.response?.status === 404) || /Unable to locate request/i.test(error.message || '');
+      if (isNotFound) {
+        try {
+          // Fallback: endpoint singular
+          const altResponse = await get(this.endpoints.pedidoAlt.getById(id), {}, token);
+          return altResponse;
+        } catch (altErr) {
+          logger.error('Error en fallback de obtener pedido (singular)', { id, error: altErr.message });
+          throw altErr;
+        }
+      }
       logger.error('Error al obtener pedido', { id, error: error.message });
       throw error;
     }
@@ -291,14 +450,63 @@ class XanoService {
 
   async getOrdersByUser(userId, params = {}, token) {
     try {
-      const response = await getPaginated(this.endpoints.pedidos.byUser(userId), 
-        params.page || 1, 
-        params.limit || 10, 
-        params, 
+      // Intento principal: endpoint plural
+      const response = await getPaginated(this.endpoints.pedidos.byUser(userId),
+        params.page || 1,
+        params.limit || 10,
+        params,
         token
       );
       return response;
     } catch (error) {
+      // Fallbacks si el workspace usa convenciones distintas en Xano
+      const isNotFound = (error.response?.status === 404) || /Unable to locate request/i.test(error.message || '');
+      if (isNotFound) {
+        try {
+          // Intento alternativo: endpoint singular
+          const altResponse = await getPaginated(this.endpoints.pedidoAlt.byUser(userId),
+            params.page || 1,
+            params.limit || 10,
+            params,
+            token
+          );
+          return altResponse;
+        } catch (altErr) {
+          // Último fallback: listar y filtrar por usuario_id
+          try {
+            const finalParams = { ...params, usuario_id: userId };
+            const listResponse = await getPaginated(this.endpoints.pedidos.list,
+              finalParams.page || 1,
+              finalParams.limit || 10,
+              finalParams,
+              token
+            );
+            return listResponse;
+          } catch (listErr) {
+            // Si ningún endpoint existe, devolvemos lista vacía para no romper la UX
+            const page = params.page || 1;
+            const limit = params.limit || 10;
+            const notFound = (listErr.response?.status === 404) || /Unable to locate request|Endpoint/i.test(listErr.message || '');
+            if (notFound) {
+              logger.warn('Endpoints de pedidos por usuario no disponibles en Xano; devolviendo vacío', { userId });
+              return {
+                data: [],
+                pagination: {
+                  page,
+                  per_page: limit,
+                  total: 0,
+                  pages: 0
+                }
+              };
+            }
+            logger.error('Fallaron los fallbacks al obtener pedidos del usuario', { 
+              userId, 
+              error: listErr.message 
+            });
+            throw listErr;
+          }
+        }
+      }
       logger.error('Error al obtener pedidos del usuario', { userId, error: error.message });
       throw error;
     }
@@ -480,6 +688,73 @@ class XanoService {
       return response;
     } catch (error) {
       logger.error('Error al actualizar preferencias de notificaciones', { error: error.message });
+      throw error;
+    }
+  }
+
+  // Métodos para recuperación de contraseña
+  async getUserByEmail(email) {
+    try {
+      const response = await post(this.endpoints.usuarios.getByEmail, { email });
+      return response;
+    } catch (error) {
+      if (error.response?.status === 404) {
+        return null; // Usuario no encontrado
+      }
+      logger.error('Error al buscar usuario por email', { email, error: error.message });
+      throw error;
+    }
+  }
+
+  async savePasswordResetToken(userId, token, expiresAt) {
+    try {
+      const response = await post(this.endpoints.usuarios.saveResetToken, {
+        user_id: userId,
+        token,
+        expires_at: expiresAt.toISOString()
+      });
+      logger.info('Token de recuperación guardado', { userId });
+      return response;
+    } catch (error) {
+      logger.error('Error al guardar token de recuperación', { userId, error: error.message });
+      throw error;
+    }
+  }
+
+  async verifyPasswordResetToken(token) {
+    try {
+      const response = await post(this.endpoints.usuarios.verifyResetToken, { token });
+      return response;
+    } catch (error) {
+      if (error.response?.status === 404) {
+        return null; // Token no encontrado o expirado
+      }
+      logger.error('Error al verificar token de recuperación', { token, error: error.message });
+      throw error;
+    }
+  }
+
+  async updatePassword(userId, newPassword) {
+    try {
+      const response = await post(this.endpoints.usuarios.updatePassword, {
+        user_id: userId,
+        password: newPassword
+      });
+      logger.info('Contraseña actualizada exitosamente', { userId });
+      return response;
+    } catch (error) {
+      logger.error('Error al actualizar contraseña', { userId, error: error.message });
+      throw error;
+    }
+  }
+
+  async deletePasswordResetToken(token) {
+    try {
+      const response = await post(this.endpoints.usuarios.deleteResetToken, { token });
+      logger.info('Token de recuperación eliminado');
+      return response;
+    } catch (error) {
+      logger.error('Error al eliminar token de recuperación', { token, error: error.message });
       throw error;
     }
   }

@@ -1,7 +1,10 @@
 // Importaciones necesarias para el módulo de gestión de pedidos
 const express = require('express');
 const Joi = require('joi'); // Para validación de datos de entrada
-const { query, transaction } = require('../config/database'); // Funciones para consultas y transacciones de base de datos
+// NOTA: Este proyecto usa Xano como backend de datos.
+// Las funciones SQL locales no están disponibles; usamos xanoService.
+const xanoService = require('../services/xanoService');
+const { query, transaction } = require('../config/database'); // Conservado para rutas que aún usan SQL en modo local
 const { verificarToken, verificarAdmin, verificarPropietarioPedido } = require('../middleware/auth'); // Middleware de autenticación y autorización
 const { asyncHandler, ValidationError, NotFoundError, ForbiddenError } = require('../middleware/errorHandler'); // Manejo de errores
 const { createLogger } = require('../middleware/logger'); // Sistema de logging
@@ -198,57 +201,78 @@ router.get('/:id', verificarToken, verificarPropietarioPedido, asyncHandler(asyn
  */
 router.get('/usuario/:id', verificarToken, asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { page = 1, limit = 10, estado = '' } = req.query;
+  // Aceptar tanto "limit" como "per_page" desde el frontend
+  const page = parseInt(req.query.page || 1);
+  const limit = parseInt(req.query.limit || req.query.per_page || 10);
+  const estado = req.query.estado || '';
+  const search = req.query.search || '';
 
   // Verificar permisos: solo el propio usuario o administrador pueden ver los pedidos
-  if (req.usuario.rol !== 'administrador' && parseInt(id) !== req.usuario.id) {
+  const recursoIdNum = parseInt(id, 10);
+  const usuarioIdNum = parseInt(req.usuario.id, 10);
+  if (
+    req.usuario.rol !== 'administrador' && (
+      Number.isNaN(recursoIdNum) || Number.isNaN(usuarioIdNum) || recursoIdNum !== usuarioIdNum
+    )
+  ) {
     throw new ForbiddenError('Solo puedes ver tus propios pedidos');
   }
 
-  const offset = (parseInt(page) - 1) * parseInt(limit);
-  
-  // Construir filtros dinámicamente
-  let whereClause = 'WHERE p.usuario_id = $1';
-  const valores = [id];
-  let contador = 2;
+  // Pasar el token original para consultar a Xano
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
 
-  // Filtro opcional por estado
-  if (estado) {
-    whereClause += ` AND p.estado = $${contador}`;
-    valores.push(estado);
-    contador++;
-  }
+  // Construir parámetros de filtrado
+  const params = { page, limit };
+  if (estado) params.estado = estado;
+  if (search) params.search = search;
 
-  // Obtener el total de registros que coinciden con los filtros
-  const totalResult = await query(`
-    SELECT COUNT(*) as total FROM pedidos p ${whereClause}
-  `, valores);
-  
-  const total = parseInt(totalResult.rows[0].total);
+  // Consultar pedidos del usuario en Xano
+  const respuesta = await xanoService.getOrdersByUser(id, params, token);
 
-  // Obtener pedidos paginados con información resumida
-  valores.push(parseInt(limit), offset);
-  const resultado = await query(`
-    SELECT 
-      p.id, p.estado, p.fecha_creacion, p.fecha_entrega, p.total_estimado,
-      COUNT(dp.id) as cantidad_items
-    FROM pedidos p
-    LEFT JOIN detalles_pedido dp ON p.id = dp.pedido_id
-    ${whereClause}
-    GROUP BY p.id, p.estado, p.fecha_creacion, p.fecha_entrega, p.total_estimado
-    ORDER BY p.fecha_creacion DESC
-    LIMIT $${contador} OFFSET $${contador + 1}
-  `, valores);
+  // La respuesta puede venir en diferentes estructuras; normalizamos
+  const pedidosRaw = respuesta.pedidos || respuesta.data || respuesta.items || [];
+  const pedidos = (Array.isArray(pedidosRaw) ? pedidosRaw : []).map(p => {
+    const fecha_creacion = p.fecha_creacion || p.created_at || p.fecha || p.createdAt;
+    // Calcular total según distintas convenciones de nombre
+    const totalCalc = (
+      p.total_estimado ??
+      p.total ??
+      p.cotizacion_total ??
+      p.importe_total ??
+      p.cotizacion ??
+      p.monto_total ??
+      p.valor_total ??
+      p.subtotal ??
+      (Array.isArray(p.detalles) ? p.detalles.reduce((acc, d) => acc + (Number(d.cotizacion) || Number(d.total) || 0), 0) : 0)
+    );
+    const productos_count = (
+      p.productos_count ??
+      p.cantidad_items ??
+      (Array.isArray(p.productos) ? p.productos.length : undefined) ??
+      (Array.isArray(p.detalles) ? p.detalles.length : undefined)
+    );
+    const numero_pedido = p.numero_pedido || p.numero || p.order_number || undefined;
+    return {
+      ...p,
+      fecha_creacion,
+      total_estimado: typeof totalCalc === 'number' ? totalCalc : Number(totalCalc) || 0,
+      total: p.total ?? (typeof totalCalc === 'number' ? totalCalc : Number(totalCalc) || 0),
+      productos_count,
+      numero_pedido
+    };
+  });
+  const pagination = respuesta.pagination || respuesta.meta || {
+    page,
+    limit,
+    total: Array.isArray(pedidos) ? pedidos.length : 0,
+    pages: 1
+  };
 
   res.json({
     message: 'Pedidos obtenidos exitosamente',
-    pedidos: resultado.rows,
-    pagination: {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      total,
-      pages: Math.ceil(total / parseInt(limit))
-    }
+    pedidos,
+    pagination
   });
 }));
 
@@ -257,61 +281,63 @@ router.get('/usuario/:id', verificarToken, asyncHandler(async (req, res) => {
  * Permite a los administradores ver todos los pedidos del sistema con opciones de filtrado
  */
 router.get('/', verificarToken, verificarAdmin, asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, estado = '', usuario_id = '' } = req.query;
-  
-  const offset = (parseInt(page) - 1) * parseInt(limit);
-  
-  // Construir filtros dinámicamente basados en los parámetros de consulta
-  let whereClause = 'WHERE 1=1';
-  const valores = [];
-  let contador = 1;
+  // Aceptar tanto "limit" como "per_page" desde el frontend
+  const page = parseInt(req.query.page || 1);
+  const limit = parseInt(req.query.limit || req.query.per_page || 10);
+  const estado = req.query.estado || '';
+  const usuario_id = req.query.usuario_id || '';
 
-  // Filtro por estado específico
-  if (estado) {
-    whereClause += ` AND p.estado = $${contador}`;
-    valores.push(estado);
-    contador++;
-  }
+  // Pasar el token original para consultar a Xano
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
 
-  // Filtro por usuario específico
-  if (usuario_id) {
-    whereClause += ` AND p.usuario_id = $${contador}`;
-    valores.push(usuario_id);
-    contador++;
-  }
+  // Construir parámetros para Xano
+  const params = { page, limit };
+  if (estado) params.estado = estado;
+  if (usuario_id) params.usuario_id = usuario_id;
 
-  // Obtener el total de registros que coinciden con los filtros
-  const totalResult = await query(`
-    SELECT COUNT(*) as total FROM pedidos p ${whereClause}
-  `, valores);
-  
-  const total = parseInt(totalResult.rows[0].total);
-
-  // Obtener pedidos paginados con información del usuario y resumen
-  valores.push(parseInt(limit), offset);
-  const resultado = await query(`
-    SELECT 
-      p.id, p.estado, p.fecha_creacion, p.fecha_entrega, p.total_estimado,
-      u.nombre as nombre_usuario, u.correo as correo_usuario,
-      COUNT(dp.id) as cantidad_items
-    FROM pedidos p
-    JOIN usuarios u ON p.usuario_id = u.id
-    LEFT JOIN detalles_pedido dp ON p.id = dp.pedido_id
-    ${whereClause}
-    GROUP BY p.id, p.estado, p.fecha_creacion, p.fecha_entrega, p.total_estimado, u.nombre, u.correo
-    ORDER BY p.fecha_creacion DESC
-    LIMIT $${contador} OFFSET $${contador + 1}
-  `, valores);
+  const respuesta = await xanoService.getOrders(params, token);
+  const pedidosRaw = respuesta.pedidos || respuesta.data || respuesta.items || [];
+  const pedidos = (Array.isArray(pedidosRaw) ? pedidosRaw : []).map(p => {
+    const fecha_creacion = p.fecha_creacion || p.created_at || p.fecha || p.createdAt;
+    const totalCalc = (
+      p.total_estimado ??
+      p.total ??
+      p.cotizacion_total ??
+      p.importe_total ??
+      p.cotizacion ??
+      p.monto_total ??
+      p.valor_total ??
+      p.subtotal ??
+      (Array.isArray(p.detalles) ? p.detalles.reduce((acc, d) => acc + (Number(d.cotizacion) || Number(d.total) || 0), 0) : 0)
+    );
+    const productos_count = (
+      p.productos_count ??
+      p.cantidad_items ??
+      (Array.isArray(p.productos) ? p.productos.length : undefined) ??
+      (Array.isArray(p.detalles) ? p.detalles.length : undefined)
+    );
+    const numero_pedido = p.numero_pedido || p.numero || p.order_number || undefined;
+    return {
+      ...p,
+      fecha_creacion,
+      total_estimado: typeof totalCalc === 'number' ? totalCalc : Number(totalCalc) || 0,
+      total: p.total ?? (typeof totalCalc === 'number' ? totalCalc : Number(totalCalc) || 0),
+      productos_count,
+      numero_pedido
+    };
+  });
+  const pagination = respuesta.pagination || respuesta.meta || {
+    current_page: page,
+    per_page: limit,
+    total: Array.isArray(pedidos) ? pedidos.length : 0,
+    last_page: 1
+  };
 
   res.json({
     message: 'Pedidos obtenidos exitosamente',
-    pedidos: resultado.rows,
-    pagination: {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      total,
-      pages: Math.ceil(total / parseInt(limit))
-    }
+    pedidos,
+    pagination
   });
 }));
 

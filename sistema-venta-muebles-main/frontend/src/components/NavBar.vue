@@ -7,28 +7,35 @@
         <!-- ===== SECCIÓN LOGO ===== -->
         <div class="flex items-center">
           <!-- Logo clickeable que lleva al home -->
-          <router-link to="/" class="flex items-center space-x-2">
-            <!-- Icono del logo con SVG de mueble -->
-            <div class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 21l4-4 4 4" />
-              </svg>
-            </div>
-            <!-- Nombre de la empresa -->
-            <span class="text-xl font-bold text-gray-900">MueblesCorp</span>
+          <router-link to="/" class="flex items-center">
+            <!-- Logo SVG de COMERCIAL HG -->
+            <img 
+              src="@/assets/logo-comercial-hg-compact.svg" 
+              alt="Comercial HG - Muebles De Baño y Cocina A Medidas" 
+              class="h-10 w-auto"
+            />
           </router-link>
         </div>
 
         <!-- ===== NAVEGACIÓN PRINCIPAL (DESKTOP) ===== -->
         <div class="hidden md:flex items-center space-x-8">
-          <!-- Link al catálogo - Visible para todos los usuarios -->
+          <!-- Link a Cotización - Solo para usuarios autenticados -->
           <router-link
-            to="/catalogo"
+            v-if="authStore.isAuthenticated"
+            to="/cotizacion"
             class="nav-link"
-            :class="{ 'nav-link-active': $route.path.startsWith('/catalogo') }"
+            :class="{ 'nav-link-active': $route.path.startsWith('/cotizacion') }"
           >
-            Catálogo
+            Cotización
+          </router-link>
+          <!-- Link a inicio/dashboard - Solo para usuarios autenticados -->
+          <router-link
+            v-if="authStore.isAuthenticated"
+            to="/dashboard"
+            class="nav-link"
+            :class="{ 'nav-link-active': $route.path.startsWith('/dashboard') }"
+          >
+            Inicio
           </router-link>
           
           <!-- Link a recomendaciones IA - Solo para usuarios autenticados -->
@@ -110,9 +117,10 @@
               class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <img
-                :src="authStore.user?.avatar_url || '/default-avatar.png'"
+                :src="authStore.user?.avatar_url || '/images/muebles/perfil.webp'"
                 :alt="authStore.user?.nombre_completo"
                 class="w-8 h-8 rounded-full object-cover"
+                @error="onAvatarError"
               />
               <span class="hidden sm:block text-sm font-medium text-gray-700">
                 {{ authStore.user?.nombre_completo?.split(' ')[0] }}
@@ -141,17 +149,6 @@
                 v-if="showUserMenu"
                 class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200"
               >
-                <router-link
-                  to="/dashboard"
-                  class="dropdown-item"
-                  @click="showUserMenu = false"
-                >
-                  <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-                  </svg>
-                  Dashboard
-                </router-link>
-                
                 <router-link
                   to="/perfil"
                   class="dropdown-item"
@@ -257,13 +254,13 @@
         <div v-if="showMobileMenu" class="md:hidden border-t border-gray-200">
           <div class="px-2 pt-2 pb-3 space-y-1 bg-white">
             <router-link
-              to="/catalogo"
+              v-if="authStore.isAuthenticated"
+              to="/cotizacion"
               class="mobile-nav-link"
               @click="showMobileMenu = false"
             >
-              Catálogo
+              Cotización
             </router-link>
-            
             <router-link
               v-if="authStore.isAuthenticated"
               to="/recomendaciones"
@@ -470,7 +467,7 @@ const loadNotifications = async () => {
   notifications.value = [
     {
       id: 1,
-      titulo: 'Bienvenido a MueblesCorp',
+      titulo: 'Bienvenido a Comercial HG',
       mensaje: 'Gracias por registrarte. Explora nuestro catálogo de muebles.',
       leida: false,
       created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString() // Hace 30 minutos
@@ -478,7 +475,7 @@ const loadNotifications = async () => {
     {
       id: 2,
       titulo: 'Nuevos productos disponibles',
-      mensaje: 'Hemos agregado nuevos muebles de oficina a nuestro catálogo.',
+      mensaje: 'Hemos agregado nuevos muebles de baño, cocina y closets a nuestro catálogo.',
       leida: true,
       created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() // Hace 1 día
     }
@@ -614,6 +611,16 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
+
+// Fallback de avatar: si falla la imagen del usuario, intenta 'perfil.webp' y luego 'default-avatar'
+const onAvatarError = (event) => {
+  const currentSrc = event?.target?.src || ''
+  if (currentSrc.includes('perfil.webp')) {
+    event.target.src = '/default-avatar.png'
+  } else {
+    event.target.src = '/images/muebles/perfil.webp'
+  }
+}
 </script>
 
 <style scoped>
