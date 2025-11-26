@@ -452,3 +452,5 @@ router.get('/estadisticas/resumen', verificarToken, verificarAdmin, asyncHandler
 
 // Exportar el router para uso en el servidor principal
 module.exports = router;
+
+
