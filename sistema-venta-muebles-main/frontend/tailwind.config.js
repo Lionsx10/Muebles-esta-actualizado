@@ -1,6 +1,13 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+<<<<<<< HEAD
   content: ['./index.html', './src/**/*.{vue,js,ts,jsx,tsx}'],
+=======
+  content: [
+    "./index.html",
+    "./src/**/*.{vue,js,ts,jsx,tsx}",
+  ],
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   theme: {
     extend: {
       colors: {
@@ -71,6 +78,7 @@ export default {
         },
       },
       fontFamily: {
+<<<<<<< HEAD
         sans: [
           'Inter',
           'ui-sans-serif',
@@ -102,6 +110,17 @@ export default {
         base: ['1rem', { lineHeight: '1.5rem' }],
         lg: ['1.125rem', { lineHeight: '1.75rem' }],
         xl: ['1.25rem', { lineHeight: '1.75rem' }],
+=======
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace'],
+      },
+      fontSize: {
+        'xs': ['0.75rem', { lineHeight: '1rem' }],
+        'sm': ['0.875rem', { lineHeight: '1.25rem' }],
+        'base': ['1rem', { lineHeight: '1.5rem' }],
+        'lg': ['1.125rem', { lineHeight: '1.75rem' }],
+        'xl': ['1.25rem', { lineHeight: '1.75rem' }],
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
         '2xl': ['1.5rem', { lineHeight: '2rem' }],
         '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
         '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
@@ -112,6 +131,7 @@ export default {
         '9xl': ['8rem', { lineHeight: '1' }],
       },
       spacing: {
+<<<<<<< HEAD
         18: '4.5rem',
         88: '22rem',
         128: '32rem',
@@ -138,6 +158,33 @@ export default {
         '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
         inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
         colored: '0 4px 14px 0 rgba(59, 130, 246, 0.15)',
+=======
+        '18': '4.5rem',
+        '88': '22rem',
+        '128': '32rem',
+        '144': '36rem',
+      },
+      borderRadius: {
+        'none': '0',
+        'sm': '0.125rem',
+        DEFAULT: '0.25rem',
+        'md': '0.375rem',
+        'lg': '0.5rem',
+        'xl': '0.75rem',
+        '2xl': '1rem',
+        '3xl': '1.5rem',
+        'full': '9999px',
+      },
+      boxShadow: {
+        'sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+        DEFAULT: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+        'md': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+        'lg': '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+        'xl': '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+        '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
+        'inner': 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
+        'colored': '0 4px 14px 0 rgba(59, 130, 246, 0.15)',
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
         'colored-lg': '0 10px 25px 0 rgba(59, 130, 246, 0.2)',
       },
       animation: {
@@ -182,6 +229,7 @@ export default {
         xs: '2px',
       },
       screens: {
+<<<<<<< HEAD
         xs: '475px',
         '3xl': '1600px',
       },
@@ -191,6 +239,17 @@ export default {
         80: '80',
         90: '90',
         100: '100',
+=======
+        'xs': '475px',
+        '3xl': '1600px',
+      },
+      zIndex: {
+        '60': '60',
+        '70': '70',
+        '80': '80',
+        '90': '90',
+        '100': '100',
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
       },
       maxWidth: {
         '8xl': '88rem',
@@ -201,10 +260,17 @@ export default {
         'screen-50': '50vh',
       },
       gridTemplateColumns: {
+<<<<<<< HEAD
         13: 'repeat(13, minmax(0, 1fr))',
         14: 'repeat(14, minmax(0, 1fr))',
         15: 'repeat(15, minmax(0, 1fr))',
         16: 'repeat(16, minmax(0, 1fr))',
+=======
+        '13': 'repeat(13, minmax(0, 1fr))',
+        '14': 'repeat(14, minmax(0, 1fr))',
+        '15': 'repeat(15, minmax(0, 1fr))',
+        '16': 'repeat(16, minmax(0, 1fr))',
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
       },
       aspectRatio: {
         '4/3': '4 / 3',
@@ -216,7 +282,11 @@ export default {
   },
   plugins: [
     // Plugin para formularios
+<<<<<<< HEAD
     function ({ addComponents, theme }) {
+=======
+    function({ addComponents, theme }) {
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
       addComponents({
         '.form-input': {
           appearance: 'none',
@@ -237,12 +307,18 @@ export default {
             '--tw-ring-offset-width': '0px',
             '--tw-ring-offset-color': '#fff',
             '--tw-ring-color': theme('colors.primary.500'),
+<<<<<<< HEAD
             '--tw-ring-offset-shadow':
               'var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color)',
             '--tw-ring-shadow':
               'var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color)',
             boxShadow:
               'var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+=======
+            '--tw-ring-offset-shadow': `var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color)`,
+            '--tw-ring-shadow': `var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color)`,
+            boxShadow: `var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)`,
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
             borderColor: theme('colors.primary.500'),
           },
         },
@@ -258,8 +334,12 @@ export default {
           paddingLeft: theme('spacing.3'),
           fontSize: theme('fontSize.sm'),
           lineHeight: theme('lineHeight.5'),
+<<<<<<< HEAD
           backgroundImage:
             "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e\")",
+=======
+          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
           backgroundPosition: 'right 0.5rem center',
           backgroundRepeat: 'no-repeat',
           backgroundSize: '1.5em 1.5em',
@@ -270,12 +350,18 @@ export default {
             '--tw-ring-offset-width': '0px',
             '--tw-ring-offset-color': '#fff',
             '--tw-ring-color': theme('colors.primary.500'),
+<<<<<<< HEAD
             '--tw-ring-offset-shadow':
               'var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color)',
             '--tw-ring-shadow':
               'var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color)',
             boxShadow:
               'var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+=======
+            '--tw-ring-offset-shadow': `var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color)`,
+            '--tw-ring-shadow': `var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color)`,
+            boxShadow: `var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)`,
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
             borderColor: theme('colors.primary.500'),
           },
         },
@@ -298,16 +384,28 @@ export default {
             '--tw-ring-offset-width': '0px',
             '--tw-ring-offset-color': '#fff',
             '--tw-ring-color': theme('colors.primary.500'),
+<<<<<<< HEAD
             '--tw-ring-offset-shadow':
               'var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color)',
             '--tw-ring-shadow':
               'var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color)',
             boxShadow:
               'var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)',
+=======
+            '--tw-ring-offset-shadow': `var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color)`,
+            '--tw-ring-shadow': `var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color)`,
+            boxShadow: `var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow)`,
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
             borderColor: theme('colors.primary.500'),
           },
         },
       })
+<<<<<<< HEAD
     },
   ],
 }
+=======
+    }
+  ],
+}
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7

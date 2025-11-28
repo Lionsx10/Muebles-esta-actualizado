@@ -39,6 +39,7 @@ const registroSchema = Joi.object({
   telefono: Joi.string().max(20).optional()
 });
 
+<<<<<<< HEAD
 // Esquema para validar datos de inicio de sesión (soporta email/correo y password/contraseña)
 const loginSchema = Joi.object({
   email: Joi.string().email().optional(),
@@ -55,6 +56,17 @@ const loginSchema = Joi.object({
     return helpers.error('any.required', { message: 'La contraseña es obligatoria' });
   }
   return { email, password };
+=======
+// Esquema para validar datos de inicio de sesión
+const loginSchema = Joi.object({
+  email: Joi.string().email().required().messages({
+    'string.email': 'Debe ser un correo electrónico válido',
+    'any.required': 'El correo es obligatorio'
+  }),
+  password: Joi.string().required().messages({
+    'any.required': 'La contraseña es obligatoria'
+  })
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 });
 
 // Esquema para validar solicitud de recuperación de contraseña
@@ -175,12 +187,22 @@ router.post('/login', asyncHandler(async (req, res) => {
     throw new ValidationError(error.details[0].message);
   }
 
+<<<<<<< HEAD
   // Normalizar campos a email/password independientemente de cómo vengan
+=======
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   const { email, password } = value;
 
   try {
     // Autenticar usuario usando el servicio de Xano
+<<<<<<< HEAD
     const response = await xanoService.login({ email, password });
+=======
+    const response = await xanoService.login({
+      email,
+      password
+    });
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
     // Log detallado para debug - ver estructura de respuesta
     console.log('🔍 Respuesta completa de Xano:', JSON.stringify(response, null, 2));
@@ -210,6 +232,7 @@ router.post('/login', asyncHandler(async (req, res) => {
       rol: user?.rol || user?.role || 'cliente'
     };
 
+<<<<<<< HEAD
     if (!authToken || authToken === 'temp_token') {
       const jwtUsuario = {
         id: userData.id,
@@ -219,6 +242,8 @@ router.post('/login', asyncHandler(async (req, res) => {
       authToken = generarToken(jwtUsuario);
     }
 
+=======
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
     console.log('👤 UserData final enviado al frontend:', JSON.stringify(userData, null, 2));
 
     // Registrar el evento de inicio de sesión exitoso
@@ -238,6 +263,7 @@ router.post('/login', asyncHandler(async (req, res) => {
 
   } catch (error) {
     // Manejar errores específicos de Xano
+<<<<<<< HEAD
     if (error.response?.status === 401 || error.response?.status === 403 || error.response?.status === 404 || error.response?.status === 400) {
       if ((process.env.NODE_ENV || 'development') !== 'production') {
         const devUser = {
@@ -259,6 +285,19 @@ router.post('/login', asyncHandler(async (req, res) => {
       }
       throw new UnauthorizedError('Credenciales inválidas. Verifica tu email y contraseña');
     }
+=======
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      throw new UnauthorizedError('Credenciales inválidas. Verifica tu email y contraseña');
+    }
+    
+    if (error.response?.status === 404) {
+      throw new UnauthorizedError('Usuario no encontrado. Verifica tu email o regístrate');
+    }
+
+    if (error.response?.status === 400) {
+      throw new ValidationError('Datos de inicio de sesión inválidos');
+    }
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
     // Registrar error para debugging
     logger.error('Error en inicio de sesión', {
@@ -267,6 +306,7 @@ router.post('/login', asyncHandler(async (req, res) => {
       ip: req.ip
     });
 
+<<<<<<< HEAD
     if ((process.env.NODE_ENV || 'development') !== 'production') {
       const devUser = {
         id: Date.now(),
@@ -285,11 +325,14 @@ router.post('/login', asyncHandler(async (req, res) => {
         usuario: devUser
       });
     }
+=======
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
     throw new UnauthorizedError('Error durante el inicio de sesión. Intenta nuevamente');
   }
 }));
 
 /**
+<<<<<<< HEAD
  * POST /admin/login - Endpoint para iniciar sesión de administradores
  * Usa la tabla 'usuario' y requiere que el rol sea administrador
  */
@@ -347,6 +390,8 @@ router.post('/admin/login', asyncHandler(async (req, res) => {
 }));
 
 /**
+=======
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
  * POST /logout - Endpoint para cerrar sesión
  * Actualmente solo registra el evento, pero podría implementar invalidación de tokens
  */
@@ -597,4 +642,8 @@ router.post('/reset-password', asyncHandler(async (req, res) => {
 }));
 
 // Exportar el router para uso en el servidor principal
+<<<<<<< HEAD
 module.exports = router;
+=======
+module.exports = router;
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7

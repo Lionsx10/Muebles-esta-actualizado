@@ -1,9 +1,117 @@
+<<<<<<< HEAD
+=======
+<template>
+  <teleport to="body">
+    <transition
+      enter-active-class="transition ease-out duration-300"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition ease-in duration-200"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="modelValue"
+        class="modal-overlay"
+        @click="handleOverlayClick"
+      >
+        <transition
+          enter-active-class="transition ease-out duration-300"
+          enter-from-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+          enter-to-class="opacity-100 translate-y-0 sm:scale-100"
+          leave-active-class="transition ease-in duration-200"
+          leave-from-class="opacity-100 translate-y-0 sm:scale-100"
+          leave-to-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+        >
+          <div
+            v-if="modelValue"
+            class="modal-container"
+            :class="modalSizeClass"
+            @click.stop
+          >
+            <!-- Header -->
+            <div v-if="showHeader" class="modal-header">
+              <div class="modal-title-section">
+                <div v-if="icon" class="modal-icon" :class="iconColorClass">
+                  <component :is="iconComponent" class="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 v-if="title" class="modal-title">
+                    {{ title }}
+                  </h3>
+                  <p v-if="subtitle" class="modal-subtitle">
+                    {{ subtitle }}
+                  </p>
+                </div>
+              </div>
+              
+              <button
+                v-if="closable"
+                @click="close"
+                class="modal-close-btn"
+                type="button"
+              >
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body" :class="bodyClass">
+              <slot />
+            </div>
+
+            <!-- Footer -->
+            <div v-if="showFooter" class="modal-footer" :class="footerClass">
+              <slot name="footer">
+                <div class="modal-default-footer">
+                  <button
+                    v-if="showCancelButton"
+                    @click="cancel"
+                    type="button"
+                    class="btn-secondary"
+                    :disabled="loading"
+                  >
+                    {{ cancelText }}
+                  </button>
+                  <button
+                    v-if="showConfirmButton"
+                    @click="confirm"
+                    type="button"
+                    class="btn-primary"
+                    :class="confirmButtonClass"
+                    :disabled="loading || confirmDisabled"
+                  >
+                    <svg
+                      v-if="loading"
+                      class="animate-spin -ml-1 mr-2 h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    {{ loading ? loadingText : confirmText }}
+                  </button>
+                </div>
+              </slot>
+            </div>
+          </div>
+        </transition>
+      </div>
+    </transition>
+  </teleport>
+</template>
+
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 <script setup>
 import { computed, onMounted, onUnmounted, h } from 'vue'
 
 const props = defineProps({
   modelValue: {
     type: Boolean,
+<<<<<<< HEAD
     default: false,
   },
   title: {
@@ -13,10 +121,22 @@ const props = defineProps({
   subtitle: {
     type: String,
     default: '',
+=======
+    default: false
+  },
+  title: {
+    type: String,
+    default: ''
+  },
+  subtitle: {
+    type: String,
+    default: ''
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   },
   size: {
     type: String,
     default: 'md',
+<<<<<<< HEAD
     validator: value =>
       ['xs', 'sm', 'md', 'lg', 'xl', '2xl', 'full'].includes(value),
   },
@@ -55,10 +175,50 @@ const props = defineProps({
   loadingText: {
     type: String,
     default: 'Procesando...',
+=======
+    validator: (value) => ['xs', 'sm', 'md', 'lg', 'xl', '2xl', 'full'].includes(value)
+  },
+  closable: {
+    type: Boolean,
+    default: true
+  },
+  closeOnOverlay: {
+    type: Boolean,
+    default: true
+  },
+  showHeader: {
+    type: Boolean,
+    default: true
+  },
+  showFooter: {
+    type: Boolean,
+    default: false
+  },
+  showCancelButton: {
+    type: Boolean,
+    default: true
+  },
+  showConfirmButton: {
+    type: Boolean,
+    default: true
+  },
+  cancelText: {
+    type: String,
+    default: 'Cancelar'
+  },
+  confirmText: {
+    type: String,
+    default: 'Confirmar'
+  },
+  loadingText: {
+    type: String,
+    default: 'Procesando...'
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   },
   confirmType: {
     type: String,
     default: 'primary',
+<<<<<<< HEAD
     validator: value =>
       ['primary', 'danger', 'warning', 'success'].includes(value),
   },
@@ -73,10 +233,26 @@ const props = defineProps({
   icon: {
     type: String,
     default: '',
+=======
+    validator: (value) => ['primary', 'danger', 'warning', 'success'].includes(value)
+  },
+  confirmDisabled: {
+    type: Boolean,
+    default: false
+  },
+  loading: {
+    type: Boolean,
+    default: false
+  },
+  icon: {
+    type: String,
+    default: ''
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   },
   iconType: {
     type: String,
     default: 'info',
+<<<<<<< HEAD
     validator: value => ['info', 'success', 'warning', 'error'].includes(value),
   },
   bodyClass: {
@@ -91,6 +267,22 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+=======
+    validator: (value) => ['info', 'success', 'warning', 'error'].includes(value)
+  },
+  bodyClass: {
+    type: String,
+    default: ''
+  },
+  footerClass: {
+    type: String,
+    default: ''
+  },
+  persistent: {
+    type: Boolean,
+    default: false
+  }
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 })
 
 const emit = defineEmits(['update:modelValue', 'close', 'cancel', 'confirm'])
@@ -104,7 +296,11 @@ const modalSizeClass = computed(() => {
     lg: 'max-w-lg',
     xl: 'max-w-xl',
     '2xl': 'max-w-2xl',
+<<<<<<< HEAD
     full: 'max-w-full mx-4',
+=======
+    full: 'max-w-full mx-4'
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   }
   return sizeClasses[props.size] || sizeClasses.md
 })
@@ -114,7 +310,11 @@ const confirmButtonClass = computed(() => {
     primary: 'btn-primary',
     danger: 'btn-danger',
     warning: 'btn-warning',
+<<<<<<< HEAD
     success: 'btn-success',
+=======
+    success: 'btn-success'
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   }
   return typeClasses[props.confirmType] || typeClasses.primary
 })
@@ -124,13 +324,18 @@ const iconColorClass = computed(() => {
     info: 'text-blue-600 bg-blue-100',
     success: 'text-green-600 bg-green-100',
     warning: 'text-yellow-600 bg-yellow-100',
+<<<<<<< HEAD
     error: 'text-red-600 bg-red-100',
+=======
+    error: 'text-red-600 bg-red-100'
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   }
   return colorClasses[props.iconType] || colorClasses.info
 })
 
 const iconComponent = computed(() => {
   const icons = {
+<<<<<<< HEAD
     info: () =>
       h(
         'svg',
@@ -201,6 +406,58 @@ const iconComponent = computed(() => {
       ),
   }
 
+=======
+    info: () => h('svg', {
+      fill: 'none',
+      stroke: 'currentColor',
+      viewBox: '0 0 24 24'
+    }, [
+      h('path', {
+        'stroke-linecap': 'round',
+        'stroke-linejoin': 'round',
+        'stroke-width': '2',
+        d: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+      })
+    ]),
+    success: () => h('svg', {
+      fill: 'none',
+      stroke: 'currentColor',
+      viewBox: '0 0 24 24'
+    }, [
+      h('path', {
+        'stroke-linecap': 'round',
+        'stroke-linejoin': 'round',
+        'stroke-width': '2',
+        d: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
+      })
+    ]),
+    warning: () => h('svg', {
+      fill: 'none',
+      stroke: 'currentColor',
+      viewBox: '0 0 24 24'
+    }, [
+      h('path', {
+        'stroke-linecap': 'round',
+        'stroke-linejoin': 'round',
+        'stroke-width': '2',
+        d: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'
+      })
+    ]),
+    error: () => h('svg', {
+      fill: 'none',
+      stroke: 'currentColor',
+      viewBox: '0 0 24 24'
+    }, [
+      h('path', {
+        'stroke-linecap': 'round',
+        'stroke-linejoin': 'round',
+        'stroke-width': '2',
+        d: 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+      })
+    ])
+  }
+  
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   return icons[props.icon] || icons[props.iconType] || icons.info
 })
 
@@ -227,6 +484,7 @@ const handleOverlayClick = () => {
   }
 }
 
+<<<<<<< HEAD
 const handleEscapeKey = event => {
   if (
     event.key === 'Escape' &&
@@ -234,6 +492,10 @@ const handleEscapeKey = event => {
     props.closable &&
     !props.persistent
   ) {
+=======
+const handleEscapeKey = (event) => {
+  if (event.key === 'Escape' && props.modelValue && props.closable && !props.persistent) {
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
     close()
   }
 }
@@ -241,7 +503,11 @@ const handleEscapeKey = event => {
 // Lifecycle
 onMounted(() => {
   document.addEventListener('keydown', handleEscapeKey)
+<<<<<<< HEAD
 
+=======
+  
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   // Prevent body scroll when modal is open
   if (props.modelValue) {
     document.body.style.overflow = 'hidden'
@@ -254,7 +520,11 @@ onUnmounted(() => {
 })
 
 // Watch for modelValue changes to handle body scroll
+<<<<<<< HEAD
 const handleBodyScroll = isOpen => {
+=======
+const handleBodyScroll = (isOpen) => {
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   if (isOpen) {
     document.body.style.overflow = 'hidden'
   } else {
@@ -267,6 +537,7 @@ const unwatchModelValue = computed(() => props.modelValue)
 unwatchModelValue.value && handleBodyScroll(unwatchModelValue.value)
 </script>
 
+<<<<<<< HEAD
 <template>
   <Teleport to="body">
     <Transition
@@ -396,6 +667,8 @@ class="modal-footer" :class="footerClass">
   </Teleport>
 </template>
 
+=======
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 <style scoped>
 .modal-overlay {
   @apply fixed inset-0 z-50 overflow-y-auto;
@@ -475,4 +748,8 @@ class="modal-footer" :class="footerClass">
 .btn-success {
   @apply px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
 }
+<<<<<<< HEAD
 </style>
+=======
+</style>
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7

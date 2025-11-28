@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 const { get, post, put, del, patch, getPaginated, authGet, authPost, authAdminGet, authAdminPost } = require('../config/database');
+=======
+const { get, post, put, del, patch, getPaginated, authGet, authPost } = require('../config/database');
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 const { createLogger } = require('../middleware/logger');
 
 const logger = createLogger('xanoService');
@@ -80,13 +84,17 @@ class XanoService {
         send: '/notificaciones/send'
       }
     };
+<<<<<<< HEAD
     // Permitir configurar endpoint de login explícito si difiere del estándar
     this.customLoginEndpoint = process.env.XANO_LOGIN_ENDPOINT || null;
+=======
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   }
 
   // Métodos de autenticación
   async login(credentials) {
     try {
+<<<<<<< HEAD
       // Compatibilidad con tablas y campos personalizados en Xano (usuario vs user)
       // Enviamos ambos nombres de campos para maximizar compatibilidad
       const payload = {
@@ -127,11 +135,15 @@ class XanoService {
         logger.error('Login en Xano no devolvió token esperado', { raw: loginResponse });
         throw new Error('Respuesta de autenticación inválida: faltó token');
       }
+=======
+      const loginResponse = await authPost(this.endpoints.auth.login, credentials);
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
       logger.info('Usuario autenticado exitosamente', { 
         email: credentials.email 
       });
       
       // Obtener información completa del usuario usando el token
+<<<<<<< HEAD
       const userInfo = await this.me(token);
       
       // Combinar la respuesta del login con la información del usuario
@@ -144,6 +156,14 @@ class XanoService {
           email: userInfo.email || userInfo.correo || credentials.email,
           rol: (userInfo.rol || userInfo.role || '').toString().toLowerCase() || 'cliente'
         }
+=======
+      const userInfo = await this.me(loginResponse.authToken);
+      
+      // Combinar la respuesta del login con la información del usuario
+      const completeResponse = {
+        authToken: loginResponse.authToken,
+        user: userInfo
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
       };
       
       return completeResponse;
@@ -156,6 +176,7 @@ class XanoService {
     }
   }
 
+<<<<<<< HEAD
   // Login para administradores usando tabla 'usuario'
   async adminLogin(credentials) {
     try {
@@ -263,6 +284,15 @@ class XanoService {
         nombre: userData.nombre,
         correo: userData.email,
         contrasena: userData.password
+=======
+  async register(userData) {
+    try {
+      // Mapear los campos al formato que espera Xano
+      const xanoData = {
+        name: userData.nombre,
+        email: userData.email,
+        password: userData.password
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
       };
       
       // Agregar teléfono si está presente
@@ -280,10 +310,17 @@ class XanoService {
         authToken: signupResponse.authToken,
         user: {
           id: userInfo.id,
+<<<<<<< HEAD
           nombre: userInfo.nombre || userInfo.name,
           email: userInfo.email || userInfo.correo,
           telefono: userData.telefono || null,
           rol: (userInfo.rol || 'cliente'),
+=======
+          nombre: userInfo.name,
+          email: userInfo.email,
+          telefono: userData.telefono || null,
+          rol: 'cliente',
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
           fecha_registro: new Date(userInfo.created_at).toISOString()
         }
       };
@@ -426,6 +463,7 @@ class XanoService {
     }
   }
 
+<<<<<<< HEAD
   // Obtener detalles del pedido desde Xano, guiándonos por la tabla 'detalle_pedido'
   // Intenta primero '/detalle_pedido' y luego '/detalles_pedido' como fallback
   async getOrderDetails(orderId, token) {
@@ -479,6 +517,8 @@ class XanoService {
     }
   }
 
+=======
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   async updateOrderStatus(id, statusData, token) {
     try {
       const response = await patch(this.endpoints.pedidos.updateStatus(id), statusData, token);

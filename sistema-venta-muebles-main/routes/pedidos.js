@@ -1,7 +1,11 @@
 // Importaciones necesarias para el módulo de gestión de pedidos
 const express = require('express');
 const Joi = require('joi'); // Para validación de datos de entrada
+<<<<<<< HEAD
 const { query, transaction, getPaginated } = require('../config/database'); // Funciones para consultas, transacciones y consultas paginadas (Xano)
+=======
+const { query, transaction } = require('../config/database'); // Funciones para consultas y transacciones de base de datos
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 const { verificarToken, verificarAdmin, verificarPropietarioPedido } = require('../middleware/auth'); // Middleware de autenticación y autorización
 const { asyncHandler, ValidationError, NotFoundError, ForbiddenError } = require('../middleware/errorHandler'); // Manejo de errores
 const { createLogger } = require('../middleware/logger'); // Sistema de logging
@@ -9,9 +13,12 @@ const { createLogger } = require('../middleware/logger'); // Sistema de logging
 // Inicialización del router de Express y logger específico para pedidos
 const router = express.Router();
 const logger = createLogger('pedidos');
+<<<<<<< HEAD
 // Integraciones: servicio Xano y almacenamiento de borradores en memoria
 const xanoService = require('../services/xanoService');
 const draftStore = require('../services/draftStore');
+=======
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
 // Configuración de estados y transiciones de pedidos
 
@@ -44,6 +51,7 @@ const crearPedidoSchema = Joi.object({
       material: Joi.string().max(100).optional(),
       color: Joi.string().max(50).optional(),
       cantidad: Joi.number().integer().min(1).default(1),
+<<<<<<< HEAD
       observaciones: Joi.string().max(500).optional(),
       imagen_url: Joi.string().max(500).optional(),
       estilo: Joi.string().max(100).optional(),
@@ -53,6 +61,13 @@ const crearPedidoSchema = Joi.object({
   notas_cliente: Joi.string().max(1000).optional(),
   direccion_entrega: Joi.string().max(500).optional(),
   total_estimado: Joi.number().precision(2).min(0).optional()
+=======
+      observaciones: Joi.string().max(500).optional()
+    })
+  ).required(),
+  notas_cliente: Joi.string().max(1000).optional(),
+  direccion_entrega: Joi.string().max(500).optional()
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 });
 
 // Esquema para validar actualización de estado de pedido
@@ -73,6 +88,7 @@ const actualizarCotizacionSchema = Joi.object({
   total_estimado: Joi.number().precision(2).min(0).required()
 });
 
+<<<<<<< HEAD
 // Esquema para agregar un detalle a un pedido existente (borrador)
 const agregarDetalleSchema = Joi.object({
   descripcion: Joi.string().min(10).max(1000).required().messages({
@@ -95,6 +111,8 @@ const solicitarCotizacionSchema = Joi.object({
   mensaje: Joi.string().max(1000).optional()
 });
 
+=======
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 /**
  * POST /pedidos - Crear nuevo pedido
  * Permite a los usuarios autenticados crear un nuevo pedido con múltiples detalles
@@ -106,16 +124,27 @@ router.post('/', verificarToken, asyncHandler(async (req, res) => {
     throw new ValidationError(error.details[0].message);
   }
 
+<<<<<<< HEAD
   const { detalles, notas_cliente, direccion_entrega, total_estimado } = value;
+=======
+  const { detalles, notas_cliente, direccion_entrega } = value;
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
   // Usar transacción para asegurar consistencia de datos
   const resultado = await transaction(async (client) => {
     // Crear el pedido principal con estado inicial 'nuevo'
     const pedidoResult = await client.query(`
+<<<<<<< HEAD
       INSERT INTO pedidos (usuario_id, estado, notas_cliente, direccion_entrega, total_estimado)
       VALUES ($1, 'nuevo', $2, $3, $4)
       RETURNING id, estado, fecha_creacion, total_estimado
     `, [req.usuario.id, notas_cliente, direccion_entrega, total_estimado || null]);
+=======
+      INSERT INTO pedidos (usuario_id, estado, notas_cliente, direccion_entrega)
+      VALUES ($1, 'nuevo', $2, $3)
+      RETURNING id, estado, fecha_creacion
+    `, [req.usuario.id, notas_cliente, direccion_entrega]);
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
     const pedido = pedidoResult.rows[0];
 
@@ -124,8 +153,13 @@ router.post('/', verificarToken, asyncHandler(async (req, res) => {
     for (const detalle of detalles) {
       const detalleResult = await client.query(`
         INSERT INTO detalles_pedido 
+<<<<<<< HEAD
         (pedido_id, descripcion, medidas, material, color, cantidad, observaciones, imagen_url, estilo, precio_unitario)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+=======
+        (pedido_id, descripcion, medidas, material, color, cantidad, observaciones)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
         RETURNING *
       `, [
         pedido.id,
@@ -134,10 +168,14 @@ router.post('/', verificarToken, asyncHandler(async (req, res) => {
         detalle.material,
         detalle.color,
         detalle.cantidad || 1,
+<<<<<<< HEAD
         detalle.observaciones,
         detalle.imagen_url || null,
         detalle.estilo || null,
         detalle.precio_unitario || null
+=======
+        detalle.observaciones
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
       ]);
       detallesInsertados.push(detalleResult.rows[0]);
     }
@@ -163,6 +201,7 @@ router.post('/', verificarToken, asyncHandler(async (req, res) => {
     cantidadDetalles: resultado.detalles.length
   });
 
+<<<<<<< HEAD
   // Intentar replicar en Xano (opcional) usando el token del usuario
   const authHeader = req.headers.authorization || '';
   const token = authHeader.split(' ')[1] || null;
@@ -177,15 +216,21 @@ router.post('/', verificarToken, asyncHandler(async (req, res) => {
     logger.warn('No se pudo crear pedido en Xano, se mantiene solo en BD local', { message: xErr.message, status: xErr.response?.status });
   }
 
+=======
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   res.status(201).json({
     message: 'Pedido creado exitosamente',
     pedido: {
       id: resultado.pedido.id,
       estado: resultado.pedido.estado,
       fechaCreacion: resultado.pedido.fecha_creacion,
+<<<<<<< HEAD
       total_estimado: resultado.pedido.total_estimado || value.total_estimado || null,
       detalles: resultado.detalles,
       xanoId: xanoOrder?.id || null
+=======
+      detalles: resultado.detalles
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
     }
   });
 }));
@@ -197,6 +242,7 @@ router.post('/', verificarToken, asyncHandler(async (req, res) => {
 router.get('/:id', verificarToken, verificarPropietarioPedido, asyncHandler(async (req, res) => {
   const { id } = req.params;
 
+<<<<<<< HEAD
   // Si es un borrador en memoria, responder desde draftStore sin tocar la BD
   if (typeof id === 'string' && id.startsWith('draft-')) {
     const draft = draftStore.getDraftByUser(req.usuario.id);
@@ -265,6 +311,8 @@ router.get('/:id', verificarToken, verificarPropietarioPedido, asyncHandler(asyn
     logger.warn('Fallo al obtener pedido desde Xano, usando BD local', { id, message: xErr.message, status: xErr.response?.status });
   }
 
+=======
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   // Obtener información principal del pedido junto con datos del usuario
   const pedidoResult = await query(`
     SELECT 
@@ -316,10 +364,15 @@ router.get('/usuario/:id', verificarToken, asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { page = 1, limit = 10, estado = '' } = req.query;
 
+<<<<<<< HEAD
+=======
+  // Verificar permisos: solo el propio usuario o administrador pueden ver los pedidos
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   if (req.usuario.rol !== 'administrador' && parseInt(id) !== req.usuario.id) {
     throw new ForbiddenError('Solo puedes ver tus propios pedidos');
   }
 
+<<<<<<< HEAD
   const token = (req.headers.authorization || '').split(' ')[1] || null;
   let pedidos = [];
   try {
@@ -343,6 +396,46 @@ router.get('/usuario/:id', verificarToken, asyncHandler(async (req, res) => {
   res.json({
     message: 'Pedidos obtenidos exitosamente',
     pedidos: paged,
+=======
+  const offset = (parseInt(page) - 1) * parseInt(limit);
+  
+  // Construir filtros dinámicamente
+  let whereClause = 'WHERE p.usuario_id = $1';
+  const valores = [id];
+  let contador = 2;
+
+  // Filtro opcional por estado
+  if (estado) {
+    whereClause += ` AND p.estado = $${contador}`;
+    valores.push(estado);
+    contador++;
+  }
+
+  // Obtener el total de registros que coinciden con los filtros
+  const totalResult = await query(`
+    SELECT COUNT(*) as total FROM pedidos p ${whereClause}
+  `, valores);
+  
+  const total = parseInt(totalResult.rows[0].total);
+
+  // Obtener pedidos paginados con información resumida
+  valores.push(parseInt(limit), offset);
+  const resultado = await query(`
+    SELECT 
+      p.id, p.estado, p.fecha_creacion, p.fecha_entrega, p.total_estimado,
+      COUNT(dp.id) as cantidad_items
+    FROM pedidos p
+    LEFT JOIN detalles_pedido dp ON p.id = dp.pedido_id
+    ${whereClause}
+    GROUP BY p.id, p.estado, p.fecha_creacion, p.fecha_entrega, p.total_estimado
+    ORDER BY p.fecha_creacion DESC
+    LIMIT $${contador} OFFSET $${contador + 1}
+  `, valores);
+
+  res.json({
+    message: 'Pedidos obtenidos exitosamente',
+    pedidos: resultado.rows,
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
     pagination: {
       page: parseInt(page),
       limit: parseInt(limit),
@@ -576,6 +669,7 @@ router.put('/:id/cotizacion', verificarToken, verificarAdmin, asyncHandler(async
 }));
 
 /**
+<<<<<<< HEAD
  * POST /pedidos/draft/detalles - Agregar detalle al pedido borrador del usuario
  * Si no existe un pedido en estado 'nuevo' para el usuario, se crea y se añade el detalle
  */
@@ -739,6 +833,8 @@ router.post('/:id/seed-detalles', verificarToken, verificarPropietarioPedido, as
 }));
 
 /**
+=======
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
  * GET /pedidos/estadisticas/resumen - Obtener estadísticas de pedidos (solo administradores)
  * Proporciona un resumen estadístico de todos los pedidos para análisis de negocio
  */
@@ -784,4 +880,8 @@ router.get('/estadisticas/resumen', verificarToken, verificarAdmin, asyncHandler
 }));
 
 // Exportar el router para uso en el servidor principal
+<<<<<<< HEAD
 module.exports = router;
+=======
+module.exports = router;
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7

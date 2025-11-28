@@ -1,9 +1,28 @@
+<<<<<<< HEAD
+=======
+<template>
+  <div class="loading-spinner" :class="containerClass">
+    <div
+      class="spinner"
+      :class="spinnerClass"
+      :style="{ width: size, height: size }"
+    >
+      <div class="spinner-inner"></div>
+    </div>
+    <p v-if="message" class="loading-message" :class="messageClass">
+      {{ message }}
+    </p>
+  </div>
+</template>
+
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 <script setup>
 import { computed } from 'vue'
 
 const props = defineProps({
   size: {
     type: String,
+<<<<<<< HEAD
     default: '40px',
   },
   color: {
@@ -22,22 +41,51 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+=======
+    default: '40px'
+  },
+  color: {
+    type: String,
+    default: 'primary'
+  },
+  message: {
+    type: String,
+    default: ''
+  },
+  overlay: {
+    type: Boolean,
+    default: false
+  },
+  center: {
+    type: Boolean,
+    default: true
+  }
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 })
 
 const containerClass = computed(() => ({
   'loading-overlay': props.overlay,
   'loading-center': props.center && !props.overlay,
+<<<<<<< HEAD
   'loading-inline': !props.center && !props.overlay,
+=======
+  'loading-inline': !props.center && !props.overlay
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 }))
 
 const spinnerClass = computed(() => ({
   'spinner-primary': props.color === 'primary',
   'spinner-white': props.color === 'white',
+<<<<<<< HEAD
   'spinner-gray': props.color === 'gray',
+=======
+  'spinner-gray': props.color === 'gray'
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 }))
 
 const messageClass = computed(() => ({
   'text-gray-600': props.color === 'primary' || props.color === 'gray',
+<<<<<<< HEAD
   'text-white': props.color === 'white',
 }))
 </script>
@@ -59,6 +107,12 @@ class="loading-message" :class="messageClass">
   </div>
 </template>
 
+=======
+  'text-white': props.color === 'white'
+}))
+</script>
+
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 <style scoped>
 .loading-spinner {
   display: flex;
@@ -142,4 +196,8 @@ class="loading-message" :class="messageClass">
     transform: rotate(360deg);
   }
 }
+<<<<<<< HEAD
 </style>
+=======
+</style>
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7

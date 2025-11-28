@@ -1,3 +1,23 @@
+<<<<<<< HEAD
+=======
+<template>
+  <!-- Contenedor principal de la aplicación con altura mínima completa -->
+  <div id="app" class="min-h-screen bg-gray-50">
+    <!-- Barra de navegación - Se oculta en páginas de autenticación -->
+    <NavBar v-if="!isAuthPage" />
+    
+    <!-- Contenido principal - Agrega padding-top cuando hay navbar -->
+    <main :class="{ 'pt-8': !isAuthPage }">
+      <!-- Router view donde se renderizan las diferentes páginas -->
+      <router-view />
+    </main>
+    
+    <!-- Footer - Se oculta en páginas de autenticación -->
+    <AppFooter v-if="!isAuthPage" />
+  </div>
+</template>
+
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 <script>
 // Importaciones de Vue y composables
 import { computed } from 'vue'
@@ -10,6 +30,7 @@ import AppFooter from '@/components/FooterComponent.vue'
 
 export default {
   name: 'App', // Nombre del componente raíz
+<<<<<<< HEAD
 
   // Registro de componentes utilizados
   components: {
@@ -17,10 +38,20 @@ export default {
     AppFooter, // Footer de la aplicación
   },
 
+=======
+  
+  // Registro de componentes utilizados
+  components: {
+    NavBar,     // Barra de navegación principal
+    AppFooter   // Footer de la aplicación
+  },
+  
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   // Composition API setup function
   setup() {
     // Acceso a la ruta actual
     const route = useRoute()
+<<<<<<< HEAD
 
     // Acceso al store de loading global
     const loadingStore = useLoadingStore()
@@ -28,10 +59,20 @@ export default {
     // Lista de páginas donde no se muestra la navegación ni footer
     const authPages = ['login', 'register', 'forgot-password', 'reset-password']
 
+=======
+    
+    // Acceso al store de loading global
+    const loadingStore = useLoadingStore()
+    
+    // Lista de páginas donde no se muestra la navegación ni footer
+    const authPages = ['login', 'register', 'forgot-password', 'reset-password']
+    
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
     // Computed que determina si estamos en una página de autenticación
     const isAuthPage = computed(() => {
       return authPages.includes(route.name)
     })
+<<<<<<< HEAD
 
     // Computed que obtiene el estado de loading global
     const isLoading = computed(() => loadingStore.isLoading)
@@ -63,10 +104,26 @@ class="min-h-screen bg-gray-50">
   </div>
 </template>
 
+=======
+    
+    // Computed que obtiene el estado de loading global
+    const isLoading = computed(() => loadingStore.isLoading)
+    
+    // Retorna las propiedades reactivas para el template
+    return {
+      isAuthPage,  // Booleano para mostrar/ocultar navbar y footer
+      isLoading    // Estado de carga global
+    }
+  }
+}
+</script>
+
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 <style>
 /* ===== ESTILOS GLOBALES ===== */
 #app {
   /* Stack de fuentes modernas con fallbacks */
+<<<<<<< HEAD
   font-family:
     'Inter',
     -apple-system,
@@ -74,6 +131,9 @@ class="min-h-screen bg-gray-50">
     'Segoe UI',
     Roboto,
     sans-serif;
+=======
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   /* Suavizado de fuentes para mejor legibilidad */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -89,8 +149,13 @@ class="min-h-screen bg-gray-50">
 }
 
 ::-webkit-scrollbar-thumb {
+<<<<<<< HEAD
   background: #c1c1c1; /* Color del thumb */
   border-radius: 4px; /* Bordes redondeados */
+=======
+  background: #c1c1c1;  /* Color del thumb */
+  border-radius: 4px;   /* Bordes redondeados */
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -134,4 +199,8 @@ class="min-h-screen bg-gray-50">
 .card {
   @apply bg-white rounded-lg shadow-md p-6;
 }
+<<<<<<< HEAD
 </style>
+=======
+</style>
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7

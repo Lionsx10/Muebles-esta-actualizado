@@ -76,7 +76,11 @@ module.exports = {
     'key-spacing': 'error',
     'keyword-spacing': 'error',
     'object-curly-spacing': ['error', 'always'],
+<<<<<<< HEAD
     semi: ['error', 'never'],
+=======
+    'semi': ['error', 'never'],
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
     'space-before-function-paren': [
       'error',
       {
@@ -86,7 +90,11 @@ module.exports = {
       },
     ],
     'space-infix-ops': 'error',
+<<<<<<< HEAD
     quotes: ['error', 'single', { avoidEscape: true }],
+=======
+    'quotes': ['error', 'single', { avoidEscape: true }],
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   },
   globals: {
     defineProps: 'readonly',
@@ -94,4 +102,8 @@ module.exports = {
     defineExpose: 'readonly',
     withDefaults: 'readonly',
   },
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7

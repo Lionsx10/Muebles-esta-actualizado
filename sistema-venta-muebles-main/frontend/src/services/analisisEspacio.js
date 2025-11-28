@@ -4,17 +4,28 @@
 // Este archivo contiene todas las funciones para interactuar con la API
 // de análisis de espacios utilizando inteligencia artificial.
 
+<<<<<<< HEAD
 import api from './api'
 import axios from 'axios'
+=======
+import api from './api';
+import axios from 'axios';
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
 // Instancia de axios sin autenticación para endpoints públicos
 const publicApi = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api',
   timeout: 30000,
   headers: {
+<<<<<<< HEAD
     'Content-Type': 'application/json',
   },
 })
+=======
+    'Content-Type': 'application/json'
+  }
+});
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
 // ============================================================================
 // FUNCIONES AUXILIARES
@@ -25,6 +36,7 @@ const publicApi = axios.create({
  * @param {File} file - Archivo a convertir
  * @returns {Promise<string>} - String en base64
  */
+<<<<<<< HEAD
 export const fileToBase64 = file => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -33,6 +45,16 @@ export const fileToBase64 = file => {
     reader.onerror = error => reject(error)
   })
 }
+=======
+export const fileToBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+};
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
 /**
  * Convierte un canvas a base64
@@ -42,8 +64,13 @@ export const fileToBase64 = file => {
  * @returns {string} - String en base64
  */
 export const canvasToBase64 = (canvas, format = 'image/png', quality = 0.9) => {
+<<<<<<< HEAD
   return canvas.toDataURL(format, quality)
 }
+=======
+  return canvas.toDataURL(format, quality);
+};
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
 /**
  * Crea una imagen de máscara a partir de las coordenadas del rectángulo
@@ -52,6 +79,7 @@ export const canvasToBase64 = (canvas, format = 'image/png', quality = 0.9) => {
  * @returns {Promise<string>} - Imagen de máscara en base64
  */
 export const createMaskFromRect = (rect, imageSize) => {
+<<<<<<< HEAD
   return new Promise(resolve => {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
@@ -70,6 +98,26 @@ export const createMaskFromRect = (rect, imageSize) => {
     resolve(canvasToBase64(canvas))
   })
 }
+=======
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = imageSize.width;
+    canvas.height = imageSize.height;
+    
+    // Fondo negro (área no seleccionada)
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Rectángulo blanco (área seleccionada)
+    ctx.fillStyle = 'white';
+    ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+    
+    resolve(canvasToBase64(canvas));
+  });
+};
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
 /**
  * Redimensiona una imagen manteniendo la proporción
@@ -79,6 +127,7 @@ export const createMaskFromRect = (rect, imageSize) => {
  * @returns {Promise<string>} - Imagen redimensionada en base64
  */
 export const resizeImage = (base64Image, maxWidth = 512, maxHeight = 512) => {
+<<<<<<< HEAD
   return new Promise(resolve => {
     const img = new Image()
     img.onload = () => {
@@ -109,6 +158,38 @@ export const resizeImage = (base64Image, maxWidth = 512, maxHeight = 512) => {
     img.src = base64Image
   })
 }
+=======
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Calcular nuevas dimensiones manteniendo proporción
+      let { width, height } = img;
+      
+      if (width > height) {
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height;
+          height = maxHeight;
+        }
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvasToBase64(canvas));
+    };
+    img.src = base64Image;
+  });
+};
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
 // ============================================================================
 // SERVICIOS DE API
@@ -124,27 +205,42 @@ export const resizeImage = (base64Image, maxWidth = 512, maxHeight = 512) => {
  * @param {string} data.prompt - Prompt opcional para la IA
  * @returns {Promise<Object>} - Respuesta con la imagen generada
  */
+<<<<<<< HEAD
 export const generarImagenConIA = async data => {
+=======
+export const generarImagenConIA = async (data) => {
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   try {
     console.log('Enviando solicitud de generación de imagen...', {
       mueble_id: data.mueble_id,
       prompt: data.prompt,
       room_image_size: data.room_image?.length || 0,
       mask_image_size: data.mask_image?.length || 0,
+<<<<<<< HEAD
       furniture_image_size: data.furniture_image?.length || 0,
     })
+=======
+      furniture_image_size: data.furniture_image?.length || 0
+    });
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
     const response = await api.post('/analisis-espacio/generar-furniture', {
       room_image: data.room_image,
       mask_image: data.mask_image,
       furniture_image: data.furniture_image,
       mueble_id: data.mueble_id,
+<<<<<<< HEAD
       prompt: data.prompt || '',
     })
+=======
+      prompt: data.prompt || ''
+    });
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
     console.log('Respuesta de generación recibida:', {
       success: response.data.success,
       hasImages: !!response.data.data?.generated_images,
+<<<<<<< HEAD
       imageCount: response.data.data?.generated_images?.length || 0,
     })
 
@@ -184,12 +280,50 @@ export const generarImagenConIA = async data => {
     }
   }
 }
+=======
+      imageCount: response.data.data?.generated_images?.length || 0
+    });
+
+    // Adaptar la respuesta para incluir múltiples imágenes
+    if (response.data.success && response.data.data?.generated_images) {
+      response.data.data.images = response.data.data.generated_images;
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error('Error al generar imagen con IA:', error);
+    
+    // Manejar diferentes tipos de errores
+    if (error.response) {
+      const { status, data } = error.response;
+      
+      switch (status) {
+        case 400:
+          throw new Error(data.message || 'Error en los datos enviados');
+        case 401:
+          throw new Error('No autorizado. Por favor, inicia sesión nuevamente');
+        case 503:
+          throw new Error('Servicio de IA temporalmente no disponible. Intenta más tarde');
+        case 500:
+          throw new Error('Error interno del servidor. Intenta más tarde');
+        default:
+          throw new Error(data.message || 'Error desconocido');
+      }
+    } else if (error.request) {
+      throw new Error('No se pudo conectar con el servidor. Verifica tu conexión');
+    } else {
+      throw new Error('Error al procesar la solicitud');
+    }
+  }
+};
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
 /**
  * Genera una imagen con IA usando archivos (nuevo endpoint basado en el código de ejemplo)
  * @param {FormData} formData - FormData con los archivos y parámetros
  * @returns {Promise<Object>} - Respuesta de la API
  */
+<<<<<<< HEAD
 export const generateWithFiles = async formData => {
   try {
     console.log('🚀 Enviando solicitud de generación con archivos...')
@@ -205,10 +339,24 @@ export const generateWithFiles = async formData => {
       },
     )
 
+=======
+export const generateWithFiles = async (formData) => {
+  try {
+    console.log('🚀 Enviando solicitud de generación con archivos...');
+    
+    const response = await publicApi.post('/analisis-espacio/generate', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 60000 // 60 segundos para la generación de IA
+    });
+    
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
     if (response.data.success) {
       return {
         success: true,
         image: response.data.image,
+<<<<<<< HEAD
         message: 'Análisis completado exitosamente',
       }
     } else {
@@ -239,6 +387,38 @@ export const generateWithFiles = async formData => {
     }
   }
 }
+=======
+        message: 'Análisis completado exitosamente'
+      };
+    } else {
+      console.error('❌ Error en la respuesta:', response.data.error);
+      return {
+        success: false,
+        error: response.data.error || 'Error al generar la imagen'
+      };
+    }
+  } catch (error) {
+    console.error('❌ Error en generateWithFiles:', error);
+    
+    if (error.response) {
+      return {
+        success: false,
+        error: error.response.data?.error || 'Error del servidor'
+      };
+    } else if (error.request) {
+      return {
+        success: false,
+        error: 'No se pudo conectar con el servidor'
+      };
+    } else {
+      return {
+        success: false,
+        error: 'Error inesperado'
+      };
+    }
+  }
+};
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
 /**
  * Obtiene el catálogo de muebles disponibles
@@ -250,6 +430,7 @@ export const generateWithFiles = async formData => {
  */
 export const obtenerCatalogoMuebles = async (params = {}) => {
   try {
+<<<<<<< HEAD
     const { categoria, limit = 50, offset = 0 } = params
 
     const queryParams = new URLSearchParams({
@@ -292,6 +473,42 @@ export const obtenerCatalogoMuebles = async (params = {}) => {
     }
   }
 }
+=======
+    const { categoria, limit = 50, offset = 0 } = params;
+    
+    const queryParams = new URLSearchParams({
+      limit: limit.toString(),
+      offset: offset.toString()
+    });
+    
+    if (categoria) {
+      queryParams.append('categoria', categoria);
+    }
+
+    console.log('Obteniendo catálogo de muebles...', { categoria, limit, offset });
+
+    const response = await publicApi.get(`/analisis-espacio/muebles?${queryParams}`);
+
+    console.log('Catálogo obtenido:', {
+      total: response.data.data?.muebles?.length || 0,
+      categorias: response.data.data?.categorias_disponibles?.length || 0
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener catálogo de muebles:', error);
+    
+    if (error.response) {
+      const { status, data } = error.response;
+      throw new Error(data.message || `Error ${status}: No se pudo obtener el catálogo`);
+    } else if (error.request) {
+      throw new Error('No se pudo conectar con el servidor');
+    } else {
+      throw new Error('Error al procesar la solicitud');
+    }
+  }
+};
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
 /**
  * Obtiene el historial de análisis del usuario
@@ -302,6 +519,7 @@ export const obtenerCatalogoMuebles = async (params = {}) => {
  */
 export const obtenerHistorialAnalisis = async (params = {}) => {
   try {
+<<<<<<< HEAD
     const { limit = 20, offset = 0 } = params
 
     const queryParams = new URLSearchParams({
@@ -333,6 +551,37 @@ export const obtenerHistorialAnalisis = async (params = {}) => {
     }
   }
 }
+=======
+    const { limit = 20, offset = 0 } = params;
+    
+    const queryParams = new URLSearchParams({
+      limit: limit.toString(),
+      offset: offset.toString()
+    });
+
+    console.log('Obteniendo historial de análisis...', { limit, offset });
+
+    const response = await api.get(`/analisis-espacio/historial?${queryParams}`);
+
+    console.log('Historial obtenido:', {
+      total: response.data.data?.analisis?.length || 0
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener historial de análisis:', error);
+    
+    if (error.response) {
+      const { status, data } = error.response;
+      throw new Error(data.message || `Error ${status}: No se pudo obtener el historial`);
+    } else if (error.request) {
+      throw new Error('No se pudo conectar con el servidor');
+    } else {
+      throw new Error('Error al procesar la solicitud');
+    }
+  }
+};
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
 // ============================================================================
 // FUNCIONES DE VALIDACIÓN
@@ -346,6 +595,7 @@ export const obtenerHistorialAnalisis = async (params = {}) => {
  */
 export const validarImagenArchivo = (file, maxSize = 10 * 1024 * 1024) => {
   if (!file) {
+<<<<<<< HEAD
     return { valid: false, error: 'No se ha seleccionado ningún archivo' }
   }
 
@@ -363,6 +613,22 @@ export const validarImagenArchivo = (file, maxSize = 10 * 1024 * 1024) => {
 
   return { valid: true }
 }
+=======
+    return { valid: false, error: 'No se ha seleccionado ningún archivo' };
+  }
+  
+  if (!file.type.startsWith('image/')) {
+    return { valid: false, error: 'El archivo debe ser una imagen' };
+  }
+  
+  if (file.size > maxSize) {
+    const maxSizeMB = maxSize / (1024 * 1024);
+    return { valid: false, error: `El archivo no puede ser mayor a ${maxSizeMB}MB` };
+  }
+  
+  return { valid: true };
+};
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
 /**
  * Valida que un rectángulo de selección sea válido
@@ -372,6 +638,7 @@ export const validarImagenArchivo = (file, maxSize = 10 * 1024 * 1024) => {
  */
 export const validarRectanguloSeleccion = (rect, imageSize) => {
   if (!rect || typeof rect !== 'object') {
+<<<<<<< HEAD
     return { valid: false, error: 'Rectángulo de selección inválido' }
   }
 
@@ -418,6 +685,33 @@ export const validarRectanguloSeleccion = (rect, imageSize) => {
 
   return { valid: true }
 }
+=======
+    return { valid: false, error: 'Rectángulo de selección inválido' };
+  }
+  
+  const { x, y, width, height } = rect;
+  
+  if (typeof x !== 'number' || typeof y !== 'number' || 
+      typeof width !== 'number' || typeof height !== 'number') {
+    return { valid: false, error: 'Las coordenadas del rectángulo deben ser números' };
+  }
+  
+  if (width <= 0 || height <= 0) {
+    return { valid: false, error: 'El rectángulo debe tener dimensiones positivas' };
+  }
+  
+  if (x < 0 || y < 0 || x + width > imageSize.width || y + height > imageSize.height) {
+    return { valid: false, error: 'El rectángulo está fuera de los límites de la imagen' };
+  }
+  
+  // Verificar que el área sea suficientemente grande (al menos 50x50 píxeles)
+  if (width < 50 || height < 50) {
+    return { valid: false, error: 'El área seleccionada debe ser de al menos 50x50 píxeles' };
+  }
+  
+  return { valid: true };
+};
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
 // ============================================================================
 // CONSTANTES Y CONFIGURACIÓN
@@ -429,6 +723,7 @@ export const CONFIGURACION_IA = {
   MARGIN: 64,
   CROP: true,
   NUM_IMAGES_PER_PROMPT: 1,
+<<<<<<< HEAD
   MODEL_TYPE: 'schnell',
 }
 
@@ -447,6 +742,26 @@ export const FORMATOS_IMAGEN_SOPORTADOS = [
   'image/png',
   'image/webp',
 ]
+=======
+  MODEL_TYPE: 'schnell'
+};
+
+export const CATEGORIAS_MUEBLES = [
+  'sofas',
+  'mesas', 
+  'sillas',
+  'camas',
+  'armarios',
+  'estanterias'
+];
+
+export const FORMATOS_IMAGEN_SOPORTADOS = [
+  'image/jpeg',
+  'image/jpg', 
+  'image/png',
+  'image/webp'
+];
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
 export default {
   generarImagenConIA,
@@ -461,5 +776,10 @@ export default {
   validarRectanguloSeleccion,
   CONFIGURACION_IA,
   CATEGORIAS_MUEBLES,
+<<<<<<< HEAD
   FORMATOS_IMAGEN_SOPORTADOS,
 }
+=======
+  FORMATOS_IMAGEN_SOPORTADOS
+};
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7

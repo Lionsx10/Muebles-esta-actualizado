@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <script>
 import {
   ejecutarDiagnostico,
@@ -71,22 +72,31 @@ export default {
 }
 </script>
 
+=======
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 <template>
   <div class="container-custom section-padding">
     <!-- Header -->
     <div class="mb-8">
+<<<<<<< HEAD
       <h1 class="text-3xl font-bold text-gray-900">
 Diagnóstico de IA
 </h1>
       <p class="mt-2 text-gray-600">
         Herramientas para diagnosticar problemas con la API de Inteligencia
         Artificial
+=======
+      <h1 class="text-3xl font-bold text-gray-900">Diagnóstico de IA</h1>
+      <p class="mt-2 text-gray-600">
+        Herramientas para diagnosticar problemas con la API de Inteligencia Artificial
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
       </p>
     </div>
 
     <!-- Controles -->
     <div class="card mb-6">
       <div class="card-header">
+<<<<<<< HEAD
         <h2 class="text-xl font-semibold text-gray-900">
           Pruebas de Conectividad
         </h2>
@@ -114,6 +124,27 @@ Diagnóstico de IA
               v-if="cargandoPrueba"
               class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"
             />
+=======
+        <h2 class="text-xl font-semibold text-gray-900">Pruebas de Conectividad</h2>
+      </div>
+      <div class="card-body">
+        <div class="flex space-x-4">
+          <button 
+            @click="ejecutarDiagnostico"
+            :disabled="cargandoDiagnostico"
+            class="btn-primary"
+          >
+            <span v-if="cargandoDiagnostico" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+            {{ cargandoDiagnostico ? 'Ejecutando...' : 'Ejecutar Diagnóstico' }}
+          </button>
+          
+          <button 
+            @click="probarIA"
+            :disabled="cargandoPrueba"
+            class="btn-secondary"
+          >
+            <span v-if="cargandoPrueba" class="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></span>
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
             {{ cargandoPrueba ? 'Probando...' : 'Prueba Simple de IA' }}
           </button>
         </div>
@@ -121,6 +152,7 @@ Diagnóstico de IA
     </div>
 
     <!-- Resultados del Diagnóstico -->
+<<<<<<< HEAD
     <div v-if="diagnostico"
 class="card mb-6">
       <div class="card-header">
@@ -136,6 +168,14 @@ class="card mb-6">
                 : 'bg-red-100 text-red-800',
             ]"
           >
+=======
+    <div v-if="diagnostico" class="card mb-6">
+      <div class="card-header">
+        <h3 class="text-lg font-semibold text-gray-900">Resultados del Diagnóstico</h3>
+        <div class="flex items-center space-x-2">
+          <div :class="['px-3 py-1 rounded-full text-sm font-medium', 
+                       diagnostico.estado === 'EXITOSO' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800']">
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
             {{ diagnostico.estado }}
           </div>
           <span class="text-sm text-gray-500">{{ diagnostico.mensaje }}</span>
@@ -143,6 +183,7 @@ class="card mb-6">
       </div>
       <div class="card-body">
         <div class="space-y-3">
+<<<<<<< HEAD
           <div
             v-for="test in diagnostico.tests"
             :key="test.nombre"
@@ -165,19 +206,32 @@ class="card mb-6">
                     : 'bg-green-100 text-green-800',
                 ]"
               >
+=======
+          <div v-for="test in diagnostico.tests" :key="test.nombre" 
+               :class="['p-4 rounded-lg border', test.esError ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50']">
+            <div class="flex items-center justify-between">
+              <h4 class="font-medium text-gray-900">{{ test.nombre }}</h4>
+              <span :class="['px-2 py-1 rounded text-xs font-medium', 
+                           test.esError ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800']">
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
                 {{ test.estado }}
               </span>
             </div>
             <div class="mt-2 text-sm text-gray-600">
+<<<<<<< HEAD
               <pre
                 v-if="typeof test.detalles === 'object'"
                 class="whitespace-pre-wrap"
                 >{{ JSON.stringify(test.detalles, null, 2) }}</pre
               >
+=======
+              <pre v-if="typeof test.detalles === 'object'" class="whitespace-pre-wrap">{{ JSON.stringify(test.detalles, null, 2) }}</pre>
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
               <span v-else>{{ test.detalles }}</span>
             </div>
           </div>
         </div>
+<<<<<<< HEAD
 
         <div
           v-if="diagnostico.timestamp"
@@ -186,11 +240,17 @@ class="card mb-6">
           <p class="text-xs text-gray-500">
             Ejecutado: {{ new Date(diagnostico.timestamp).toLocaleString() }}
           </p>
+=======
+        
+        <div v-if="diagnostico.timestamp" class="mt-4 pt-4 border-t border-gray-200">
+          <p class="text-xs text-gray-500">Ejecutado: {{ new Date(diagnostico.timestamp).toLocaleString() }}</p>
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
         </div>
       </div>
     </div>
 
     <!-- Resultados de la Prueba de IA -->
+<<<<<<< HEAD
     <div v-if="pruebaIA"
 class="card mb-6">
       <div class="card-header">
@@ -205,10 +265,18 @@ class="card mb-6">
               : 'bg-red-100 text-red-800',
           ]"
         >
+=======
+    <div v-if="pruebaIA" class="card mb-6">
+      <div class="card-header">
+        <h3 class="text-lg font-semibold text-gray-900">Resultados de la Prueba de IA</h3>
+        <div :class="['px-3 py-1 rounded-full text-sm font-medium', 
+                     pruebaIA.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800']">
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
           {{ pruebaIA.success ? 'EXITOSO' : 'ERROR' }}
         </div>
       </div>
       <div class="card-body">
+<<<<<<< HEAD
         <div v-if="pruebaIA.success"
 class="text-green-700">
           <p class="font-medium">
@@ -234,6 +302,19 @@ class="mt-3 p-3 bg-gray-50 rounded">
             <pre class="text-xs text-gray-600">{{
               JSON.stringify(pruebaIA.details, null, 2)
             }}</pre>
+=======
+        <div v-if="pruebaIA.success" class="text-green-700">
+          <p class="font-medium">✅ {{ pruebaIA.message }}</p>
+          <div v-if="pruebaIA.data" class="mt-3 p-3 bg-gray-50 rounded">
+            <pre class="text-xs text-gray-600">{{ JSON.stringify(pruebaIA.data, null, 2) }}</pre>
+          </div>
+        </div>
+        <div v-else class="text-red-700">
+          <p class="font-medium">❌ {{ pruebaIA.message }}</p>
+          <p class="mt-2 text-sm">{{ pruebaIA.error }}</p>
+          <div v-if="pruebaIA.details" class="mt-3 p-3 bg-gray-50 rounded">
+            <pre class="text-xs text-gray-600">{{ JSON.stringify(pruebaIA.details, null, 2) }}</pre>
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
           </div>
         </div>
       </div>
@@ -242,13 +323,18 @@ class="mt-3 p-3 bg-gray-50 rounded">
     <!-- Información de Ayuda -->
     <div class="card">
       <div class="card-header">
+<<<<<<< HEAD
         <h3 class="text-lg font-semibold text-gray-900">
           Información de Ayuda
         </h3>
+=======
+        <h3 class="text-lg font-semibold text-gray-900">Información de Ayuda</h3>
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
       </div>
       <div class="card-body">
         <div class="space-y-4 text-sm text-gray-600">
           <div>
+<<<<<<< HEAD
             <h4 class="font-medium text-gray-900">
 Diagnóstico Completo
 </h4>
@@ -270,6 +356,17 @@ Prueba Simple de IA
             <h4 class="font-medium text-gray-900">
 Problemas Comunes
 </h4>
+=======
+            <h4 class="font-medium text-gray-900">Diagnóstico Completo</h4>
+            <p>Verifica la conexión con Hugging Face, importación de librerías y procesamiento de imágenes.</p>
+          </div>
+          <div>
+            <h4 class="font-medium text-gray-900">Prueba Simple de IA</h4>
+            <p>Ejecuta una llamada real a la API de IA con parámetros mínimos para verificar funcionalidad.</p>
+          </div>
+          <div>
+            <h4 class="font-medium text-gray-900">Problemas Comunes</h4>
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
             <ul class="list-disc list-inside space-y-1 mt-2">
               <li>Error de conexión: Verificar conectividad a internet</li>
               <li>Error de autenticación: Verificar tokens de Hugging Face</li>
@@ -282,3 +379,67 @@ Problemas Comunes
     </div>
   </div>
 </template>
+<<<<<<< HEAD
+=======
+
+<script>
+import { ejecutarDiagnostico, probarIA, formatearDiagnostico } from '@/services/diagnosticoIA';
+
+export default {
+  name: 'DiagnosticoIAView',
+  data() {
+    return {
+      cargandoDiagnostico: false,
+      cargandoPrueba: false,
+      diagnostico: null,
+      pruebaIA: null
+    };
+  },
+  methods: {
+    async ejecutarDiagnostico() {
+      this.cargandoDiagnostico = true;
+      this.diagnostico = null;
+      
+      try {
+        const resultado = await ejecutarDiagnostico();
+        this.diagnostico = formatearDiagnostico(resultado);
+      } catch (error) {
+        console.error('Error en diagnóstico:', error);
+        this.diagnostico = {
+          estado: 'ERROR',
+          mensaje: 'Error al ejecutar diagnóstico',
+          tests: [{
+            nombre: 'Error de Conexión',
+            estado: 'FAILED',
+            detalles: error.response?.data?.message || error.message || 'Error desconocido',
+            esError: true
+          }]
+        };
+      } finally {
+        this.cargandoDiagnostico = false;
+      }
+    },
+
+    async probarIA() {
+      this.cargandoPrueba = true;
+      this.pruebaIA = null;
+      
+      try {
+        const resultado = await probarIA();
+        this.pruebaIA = resultado;
+      } catch (error) {
+        console.error('Error en prueba de IA:', error);
+        this.pruebaIA = {
+          success: false,
+          message: 'Error en prueba de IA',
+          error: error.response?.data?.message || error.message || 'Error desconocido',
+          details: error.response?.data?.details || null
+        };
+      } finally {
+        this.cargandoPrueba = false;
+      }
+    }
+  }
+};
+</script>
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7

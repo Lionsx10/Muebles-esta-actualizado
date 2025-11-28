@@ -24,6 +24,7 @@ const xanoAuthConfig = {
 // Crear instancias de axios para Xano
 const xanoAPI = axios.create(xanoConfig);
 const xanoAuthAPI = axios.create(xanoAuthConfig);
+<<<<<<< HEAD
 // API de autenticación para administradores (tabla 'usuario')
 const xanoAdminAuthConfig = {
   baseURL: process.env.XANO_ADMIN_AUTH_URL || process.env.XANO_AUTH_URL || process.env.XANO_API_URL,
@@ -33,6 +34,8 @@ const xanoAdminAuthConfig = {
   }
 };
 const xanoAdminAuthAPI = axios.create(xanoAdminAuthConfig);
+=======
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 
 // Interceptor para requests - agregar token de autenticación si existe
 xanoAPI.interceptors.request.use(
@@ -149,6 +152,7 @@ xanoAuthAPI.interceptors.response.use(
   }
 );
 
+<<<<<<< HEAD
 // Interceptores para la API de autenticación de administradores
 xanoAdminAuthAPI.interceptors.request.use(
   (config) => {
@@ -197,6 +201,8 @@ xanoAdminAuthAPI.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+=======
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 // Función para probar la conexión con Xano
 const testConnection = async () => {
   // Si no hay URLs de Xano configuradas, omitir la prueba de conexión
@@ -206,6 +212,7 @@ const testConnection = async () => {
   }
 
   try {
+<<<<<<< HEAD
     logger.info('Configuración de Xano detectada', {
       mainAPI: process.env.XANO_API_URL,
       authAPI: process.env.XANO_AUTH_URL || 'usando main API',
@@ -237,6 +244,16 @@ const testConnection = async () => {
       logger.warn('No se pudo conectar a Xano en el arranque', results);
     }
     return isConnected;
+=======
+    // Probar conexión básica sin endpoint específico
+    logger.info('Configuración de Xano detectada', {
+      mainAPI: process.env.XANO_API_URL,
+      authAPI: process.env.XANO_AUTH_URL || 'usando main API',
+      timestamp: new Date().toISOString()
+    });
+    
+    return true;
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   } catch (error) {
     logger.error('Error al verificar configuración de Xano', { 
       error: error.message 
@@ -378,6 +395,7 @@ const authGet = async (endpoint, params = {}, token = null) => {
   }
 };
 
+<<<<<<< HEAD
 // Funciones específicas para autenticación de administradores
 const authAdminPost = async (endpoint, data = {}, token = null) => {
   try {
@@ -405,6 +423,8 @@ const authAdminGet = async (endpoint, params = {}, token = null) => {
   }
 };
 
+=======
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 module.exports = {
   xanoAPI,
   xanoAuthAPI,
@@ -416,7 +436,10 @@ module.exports = {
   getPaginated,
   authGet,
   authPost,
+<<<<<<< HEAD
   authAdminGet,
   authAdminPost,
+=======
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   testConnection
 };

@@ -7,8 +7,12 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+<<<<<<< HEAD
 // @gradio/client es un paquete ESM; para evitar errores en CommonJS,
 // importamos dinámicamente dentro de las funciones que lo usan.
+=======
+const { Client, handle_file } = require('@gradio/client');
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
 const { verificarToken } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { ValidationError, NotFoundError } = require('../middleware/errorHandler');
@@ -208,9 +212,12 @@ function generateLocalFallback(params) {
  */
 async function callGradioAPI(params) {
   try {
+<<<<<<< HEAD
     // Importación dinámica de @gradio/client para compatibilidad con CommonJS
     const { Client, handle_file } = await import('@gradio/client');
 
+=======
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
     logger.info('Conectando con Gradio API FurnitureDemo...', {
       hasRoomBuffer: !!params.room_buffer,
       hasFurnitureBuffer: !!params.furniture_buffer,

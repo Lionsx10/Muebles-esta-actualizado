@@ -145,6 +145,7 @@ const verificarPropietarioPedido = async (req, res, next) => {
       return next();
     }
 
+<<<<<<< HEAD
     // Permitir acceso si es borrador del mismo usuario
     if (typeof pedidoId === 'string' && pedidoId.startsWith('draft-')) {
       const expectedId = `draft-${parseInt(usuarioId, 10)}`;
@@ -179,6 +180,30 @@ const verificarPropietarioPedido = async (req, res, next) => {
         message: 'No fue posible verificar el propietario del pedido'
       });
     }
+=======
+    // VERIFICAR PROPIETARIO DEL PEDIDO en la base de datos
+    const result = await query(
+      'SELECT usuario_id FROM pedidos WHERE id = $1',
+      [pedidoId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Pedido no encontrado',
+        message: 'El pedido especificado no existe'
+      });
+    }
+
+    // VERIFICAR QUE EL PEDIDO PERTENEZCA AL USUARIO
+    if (result.rows[0].usuario_id !== usuarioId) {
+      return res.status(403).json({
+        error: 'Acceso denegado',
+        message: 'Solo puedes acceder a tus propios pedidos'
+      });
+    }
+
+    next(); // Permitir acceso al propietario del pedido
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
   } catch (error) {
     console.error('Error en verificación de propietario de pedido:', error);
     res.status(500).json({

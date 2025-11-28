@@ -35,7 +35,14 @@ app.use(Toast, {
   hideProgressBar: false,
   closeButton: 'button',
   icon: true,
+<<<<<<< HEAD
   rtl: false,
 })
 
 app.mount('#app')
+=======
+  rtl: false
+})
+
+app.mount('#app')
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
