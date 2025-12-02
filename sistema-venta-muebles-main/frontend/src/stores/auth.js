@@ -1,0 +1,528 @@
+// IMPORTS - Importación de dependencias necesarias
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import api, { authAPI, usersAPI } from '@/services/api'
+import { useToast } from 'vue-toastification'
+
+// STORE DE AUTENTICACIÓN - Gestión centralizada del estado de autenticación
+export const useAuthStore = defineStore('auth', () => {
+  const toast = useToast()
+<<<<<<< HEAD
+
+  // ESTADO REACTIVO - Variables de estado para la autenticación
+  const user = ref(null) // Datos del usuario autenticado
+  const token = ref(localStorage.getItem('token')) // Token JWT de acceso
+  const refreshToken = ref(localStorage.getItem('refreshToken')) // Token para renovar acceso
+  const isLoading = ref(false) // Estado de carga para operaciones async
+
+  // COMPUTED PROPERTIES - Propiedades calculadas basadas en el estado
+  const isAuthenticated = computed(() => !!token.value && !!user.value) // Usuario está autenticado
+  const isAdmin = computed(() => {
+    const u = user.value || {}
+    const rol = (u.rol || '').toString().toLowerCase()
+    const flag = u.is_admin === true || u.admin === true
+    return flag || rol === 'admin' || rol === 'administrador'
+  }) // Usuario es administrador
+  const userName = computed(() => user.value?.nombre || '') // Nombre del usuario
+  const userEmail = computed(
+    () => user.value?.email || user.value?.correo || '',
+  ) // Email del usuario
+
+  // ACCIONES - Funciones para manejar la autenticación
+
+  // FUNCIÓN DE LOGIN - Iniciar sesión con credenciales
+  const login = async (credentials, options = {}) => {
+    try {
+      isLoading.value = true
+      const isAdminMode = options.admin === true
+      const response = isAdminMode
+        ? await authAPI.adminLogin(credentials)
+        : await authAPI.login(credentials)
+
+      // Normaliza estructura de respuesta para distintos backends
+      const data = response.data || {}
+      const accessToken =
+        data.token || data.access_token || data.authToken || null
+      const newRefreshToken = data.refreshToken || data.refresh_token || null
+      const usuario =
+        data.usuario ||
+        data.user ||
+        data.data?.usuario ||
+        data.data?.user ||
+        data.perfil ||
+        null
+
+=======
+  
+  // ESTADO REACTIVO - Variables de estado para la autenticación
+  const user = ref(null)                                    // Datos del usuario autenticado
+  const token = ref(localStorage.getItem('token'))          // Token JWT de acceso
+  const refreshToken = ref(localStorage.getItem('refreshToken')) // Token para renovar acceso
+  const isLoading = ref(false)                              // Estado de carga para operaciones async
+  
+  // COMPUTED PROPERTIES - Propiedades calculadas basadas en el estado
+  const isAuthenticated = computed(() => !!token.value && !!user.value) // Usuario está autenticado
+  const isAdmin = computed(() => user.value?.rol === 'administrador')    // Usuario es administrador
+  const userName = computed(() => user.value?.nombre || '')              // Nombre del usuario
+  const userEmail = computed(() => user.value?.email || '')              // Email del usuario
+  
+  // ACCIONES - Funciones para manejar la autenticación
+  
+  // FUNCIÓN DE LOGIN - Iniciar sesión con credenciales
+  const login = async (credentials) => {
+    try {
+      isLoading.value = true
+      const response = await authAPI.login(credentials)
+      
+      const { token: accessToken, refreshToken: newRefreshToken, usuario } = response.data
+      
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+      // GUARDAR TOKENS Y USUARIO en el estado
+      token.value = accessToken
+      refreshToken.value = newRefreshToken
+      user.value = usuario
+<<<<<<< HEAD
+
+      // PERSISTIR TOKENS Y USUARIO en localStorage para mantener sesión
+      if (accessToken) localStorage.setItem('token', accessToken)
+      if (newRefreshToken) localStorage.setItem('refreshToken', newRefreshToken)
+      if (usuario) localStorage.setItem('user', JSON.stringify(usuario))
+
+      // CONFIGURAR TOKEN en headers de API para futuras peticiones
+      if (accessToken) {
+        api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
+      }
+
+      toast.success(`¡Bienvenido, ${usuario?.nombre || 'Usuario'}!`)
+
+      return { success: true, user: usuario }
+    } catch (error) {
+      const message =
+        error.response?.data?.mensaje ||
+        error.response?.data?.message ||
+        'Error al iniciar sesión'
+=======
+      
+      // PERSISTIR TOKENS Y USUARIO en localStorage para mantener sesión
+      localStorage.setItem('token', accessToken)
+      localStorage.setItem('refreshToken', newRefreshToken)
+      localStorage.setItem('user', JSON.stringify(usuario))
+      
+      // CONFIGURAR TOKEN en headers de API para futuras peticiones
+      api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
+      
+      toast.success(`¡Bienvenido, ${usuario.nombre}!`)
+      
+      return { success: true, user: usuario }
+    } catch (error) {
+      const message = error.response?.data?.mensaje || 'Error al iniciar sesión'
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+      toast.error(message)
+      return { success: false, error: message }
+    } finally {
+      isLoading.value = false
+    }
+  }
+<<<<<<< HEAD
+
+  // FUNCIÓN DE REGISTRO - Crear nueva cuenta de usuario
+  const register = async userData => {
+    try {
+      isLoading.value = true
+      const response = await authAPI.register(userData)
+
+      // Solo mostrar mensaje de éxito, sin hacer login automático
+      toast.success('¡Cuenta creada exitosamente! Ahora puedes iniciar sesión')
+
+=======
+  
+  // FUNCIÓN DE REGISTRO - Crear nueva cuenta de usuario
+  const register = async (userData) => {
+    try {
+      isLoading.value = true
+      const response = await authAPI.register(userData)
+      
+      // Solo mostrar mensaje de éxito, sin hacer login automático
+      toast.success('¡Cuenta creada exitosamente! Ahora puedes iniciar sesión')
+      
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+      return { success: true, message: 'Usuario registrado exitosamente' }
+    } catch (error) {
+      const message = error.response?.data?.mensaje || 'Error al registrarse'
+      toast.error(message)
+      return { success: false, error: message }
+    } finally {
+      isLoading.value = false
+    }
+  }
+<<<<<<< HEAD
+
+=======
+  
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+  // FUNCIÓN DE LOGOUT - Cerrar sesión y limpiar estado
+  const logout = async () => {
+    try {
+      // INTENTAR LOGOUT en el servidor para invalidar token
+      if (token.value) {
+        await authAPI.logout()
+      }
+    } catch (error) {
+      console.warn('Error al hacer logout en el servidor:', error)
+    } finally {
+      // LIMPIAR ESTADO LOCAL independientemente del resultado del servidor
+      user.value = null
+      token.value = null
+      refreshToken.value = null
+<<<<<<< HEAD
+
+=======
+      
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+      // LIMPIAR PERSISTENCIA en localStorage
+      localStorage.removeItem('token')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('user')
+<<<<<<< HEAD
+
+      // LIMPIAR HEADER de autorización en API
+      delete api.defaults.headers.common['Authorization']
+
+      toast.info('Sesión cerrada correctamente')
+    }
+  }
+
+=======
+      
+      // LIMPIAR HEADER de autorización en API
+      delete api.defaults.headers.common['Authorization']
+      
+      toast.info('Sesión cerrada correctamente')
+    }
+  }
+  
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+  // FUNCIÓN DE VERIFICACIÓN - Validar token actual con el servidor
+  const verifyToken = async () => {
+    try {
+      if (!token.value) {
+        throw new Error('No hay token disponible')
+      }
+<<<<<<< HEAD
+
+      const response = await authAPI.verifyToken()
+      user.value = response.data.usuario
+
+=======
+      
+      const response = await authAPI.verifyToken()
+      user.value = response.data.usuario
+      
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+      return { success: true, user: response.data.usuario }
+    } catch (error) {
+      // TOKEN INVÁLIDO - Intentar renovar con refresh token
+      if (refreshToken.value) {
+        try {
+          return await refreshAccessToken()
+        } catch (refreshError) {
+          // Si el refresh también falla, lanzar el error sin hacer logout automático
+          throw refreshError
+        }
+      }
+<<<<<<< HEAD
+
+=======
+      
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+      // NO SE PUEDE VERIFICAR - Lanzar error sin hacer logout automático
+      // El componente que llama esta función decidirá si hacer logout
+      throw error
+    }
+  }
+<<<<<<< HEAD
+
+=======
+  
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+  // FUNCIÓN DE RENOVACIÓN - Obtener nuevo token de acceso
+  const refreshAccessToken = async () => {
+    try {
+      if (!refreshToken.value) {
+        throw new Error('No hay refresh token disponible')
+      }
+<<<<<<< HEAD
+
+      const response = await authAPI.refreshToken(refreshToken.value)
+
+      const { token: newAccessToken, usuario } = response.data
+
+      // ACTUALIZAR TOKEN de acceso
+      token.value = newAccessToken
+      user.value = usuario
+
+      // PERSISTIR NUEVO TOKEN
+      localStorage.setItem('token', newAccessToken)
+
+      // CONFIGURAR NUEVO TOKEN en headers de API
+      api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`
+
+=======
+      
+      const response = await authAPI.refreshToken(refreshToken.value)
+      
+      const { token: newAccessToken, usuario } = response.data
+      
+      // ACTUALIZAR TOKEN de acceso
+      token.value = newAccessToken
+      user.value = usuario
+      
+      // PERSISTIR NUEVO TOKEN
+      localStorage.setItem('token', newAccessToken)
+      
+      // CONFIGURAR NUEVO TOKEN en headers de API
+      api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`
+      
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+      return { success: true, user: usuario }
+    } catch (error) {
+      // REFRESH TOKEN INVÁLIDO - Lanzar error sin hacer logout automático
+      // El componente que llama esta función decidirá si hacer logout
+      throw error
+    }
+  }
+<<<<<<< HEAD
+
+  // FUNCIÓN DE ACTUALIZACIÓN DE PERFIL - Modificar datos del usuario
+  const updateProfile = async profileData => {
+    try {
+      isLoading.value = true
+      const response = await usersAPI.updateProfile(profileData)
+
+      // ACTUALIZAR DATOS del usuario en el estado
+      user.value = { ...user.value, ...response.data.usuario }
+      toast.success('Perfil actualizado correctamente')
+
+      return { success: true, user: user.value }
+    } catch (error) {
+      const message =
+        error.response?.data?.mensaje || 'Error al actualizar perfil'
+=======
+  
+  // FUNCIÓN DE ACTUALIZACIÓN DE PERFIL - Modificar datos del usuario
+  const updateProfile = async (profileData) => {
+    try {
+      isLoading.value = true
+      const response = await usersAPI.updateProfile(profileData)
+      
+      // ACTUALIZAR DATOS del usuario en el estado
+      user.value = { ...user.value, ...response.data.usuario }
+      toast.success('Perfil actualizado correctamente')
+      
+      return { success: true, user: user.value }
+    } catch (error) {
+      const message = error.response?.data?.mensaje || 'Error al actualizar perfil'
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+      toast.error(message)
+      return { success: false, error: message }
+    } finally {
+      isLoading.value = false
+    }
+  }
+<<<<<<< HEAD
+
+  // FUNCIÓN DE CAMBIO DE CONTRASEÑA - Actualizar contraseña del usuario
+  const changePassword = async passwordData => {
+    try {
+      isLoading.value = true
+      await usersAPI.changePassword(passwordData)
+
+      toast.success('Contraseña cambiada correctamente')
+      return { success: true }
+    } catch (error) {
+      const message =
+        error.response?.data?.mensaje || 'Error al cambiar contraseña'
+=======
+  
+  // FUNCIÓN DE CAMBIO DE CONTRASEÑA - Actualizar contraseña del usuario
+  const changePassword = async (passwordData) => {
+    try {
+      isLoading.value = true
+      await usersAPI.changePassword(passwordData)
+      
+      toast.success('Contraseña cambiada correctamente')
+      return { success: true }
+    } catch (error) {
+      const message = error.response?.data?.mensaje || 'Error al cambiar contraseña'
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+      toast.error(message)
+      return { success: false, error: message }
+    } finally {
+      isLoading.value = false
+    }
+  }
+<<<<<<< HEAD
+
+  // FUNCIÓN DE RECUPERACIÓN - Solicitar enlace de recuperación de contraseña
+  const forgotPassword = async email => {
+    try {
+      isLoading.value = true
+      await authAPI.forgotPassword(email)
+
+      toast.success('Se ha enviado un enlace de recuperación a tu correo')
+      return { success: true }
+    } catch (error) {
+      const message =
+        error.response?.data?.mensaje ||
+        'Error al enviar correo de recuperación'
+=======
+  
+  // FUNCIÓN DE RECUPERACIÓN - Solicitar enlace de recuperación de contraseña
+  const forgotPassword = async (email) => {
+    try {
+      isLoading.value = true
+      await authAPI.forgotPassword(email)
+      
+      toast.success('Se ha enviado un enlace de recuperación a tu correo')
+      return { success: true }
+    } catch (error) {
+      const message = error.response?.data?.mensaje || 'Error al enviar correo de recuperación'
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+      toast.error(message)
+      return { success: false, error: message }
+    } finally {
+      isLoading.value = false
+    }
+  }
+<<<<<<< HEAD
+
+  // FUNCIÓN DE RESTABLECIMIENTO - Restablecer contraseña con token
+  const resetPassword = async resetData => {
+    try {
+      isLoading.value = true
+      await authAPI.resetPassword(resetData)
+
+      toast.success('Contraseña restablecida correctamente')
+      return { success: true }
+    } catch (error) {
+      const message =
+        error.response?.data?.mensaje || 'Error al restablecer contraseña'
+=======
+  
+  // FUNCIÓN DE RESTABLECIMIENTO - Restablecer contraseña con token
+  const resetPassword = async (resetData) => {
+    try {
+      isLoading.value = true
+      await authAPI.resetPassword(resetData)
+      
+      toast.success('Contraseña restablecida correctamente')
+      return { success: true }
+    } catch (error) {
+      const message = error.response?.data?.mensaje || 'Error al restablecer contraseña'
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+      toast.error(message)
+      return { success: false, error: message }
+    } finally {
+      isLoading.value = false
+    }
+  }
+<<<<<<< HEAD
+
+=======
+  
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+  // FUNCIÓN DE INICIALIZACIÓN - Configurar store al cargar la aplicación
+  const initialize = async () => {
+    if (token.value) {
+      // CONFIGURAR TOKEN en headers de API si existe
+      api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
+<<<<<<< HEAD
+
+=======
+      
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+      // RESTAURAR DATOS DE USUARIO desde localStorage si existen
+      const savedUser = localStorage.getItem('user')
+      if (savedUser) {
+        try {
+          user.value = JSON.parse(savedUser)
+<<<<<<< HEAD
+          console.log(
+            'Sesión restaurada desde localStorage:',
+            user.value.nombre,
+          )
+=======
+          console.log('Sesión restaurada desde localStorage:', user.value.nombre)
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+        } catch (error) {
+          console.warn('Error al parsear datos de usuario guardados')
+          user.value = null
+        }
+      }
+<<<<<<< HEAD
+
+=======
+      
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+      // Si no hay datos de usuario guardados, crear un usuario básico para mantener la sesión
+      if (!user.value && token.value) {
+        user.value = {
+          id: 'temp',
+          nombre: 'Usuario',
+          email: 'usuario@ejemplo.com',
+<<<<<<< HEAD
+          rol: 'cliente',
+=======
+          rol: 'cliente'
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+        }
+        console.log('Sesión mantenida con datos temporales')
+      }
+    }
+  }
+<<<<<<< HEAD
+
+=======
+  
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+  // EXPORTACIÓN DEL STORE - Retornar estado y acciones disponibles
+  return {
+    // ESTADO REACTIVO
+    user,
+    token,
+    refreshToken,
+    isLoading,
+<<<<<<< HEAD
+
+=======
+    
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+    // PROPIEDADES COMPUTADAS
+    isAuthenticated,
+    isAdmin,
+    userName,
+    userEmail,
+<<<<<<< HEAD
+
+=======
+    
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
+    // ACCIONES DISPONIBLES
+    login,
+    register,
+    logout,
+    verifyToken,
+    refreshAccessToken,
+    updateProfile,
+    changePassword,
+    forgotPassword,
+    resetPassword,
+<<<<<<< HEAD
+    initialize,
+  }
+})
+=======
+    initialize
+  }
+})
+>>>>>>> 508193cb28cf58f1a9fb6186e192976b60efe9a7
