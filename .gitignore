@@ -1,0 +1,17 @@
+# Dependencias comunes
+node_modules/
+
+# Archivos de entorno (posibles secretos)
+.env
+.env.*
+*.env
+sistema-venta-muebles-main/.env
+sistema-venta-muebles-main/frontend/.env.local
+
+# Repositorios embebidos no deseados
+pag con la ia/
+
+# Archivos del editor/OS
+.DS_Store
+Thumbs.db
+.vscode/
